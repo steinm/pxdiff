@@ -2473,7 +2473,7 @@ int main(int argc, char *argv[]) {
 		pxdoc2->free(pxdoc2, data2);
 		pxdoc2->free(pxdoc2, records2);
 	} else {
-		if(schemasdiffer) {
+		if(schemasdiffer && comparedata) {
 			fprintf(outfp, _("Schema already differs, will not compare records."));
 			fprintf(outfp, "\n");
 		}
