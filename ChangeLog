@@ -1,8 +1,7 @@
 Version 0.0.6
-	- initial support for output-mode, currently only plain and stat is
-	  supported
+	- initial support for output-mode, plain, sql and stat is supported
 	- new option --show-record-diff which enables the output of differences
-	  within a record
+	  within a record (only in plain output mode)
 	- fixed the record comparison when a primary key is given
 	- fields at the end of database 1 and 2 are being taken into account
 	- new option --compare-common restricts comparision on those fields

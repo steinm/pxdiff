@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <stdarg.h>
 #include <getopt.h>
 #include <libintl.h>
 #include <sys/types.h>
@@ -20,6 +21,64 @@
 #endif
 
 int qsort_len;
+
+/* printmask() {{{
+ * Prints str and masks each occurence of c1 with c2.
+ * Returns the number of written chars.
+ */
+int printmask(FILE *outfp, char *str, char c1, char c2 ) {
+	char *ptr;
+	int len = 0;
+	ptr = str;
+	while(*ptr != '\0') {
+		if(*ptr == c1) {
+			fprintf(outfp, "%c", c2);
+			len ++;
+		} 
+		fprintf(outfp, "%c", *ptr);
+		len++;
+		ptr++;
+	}
+	return(len);
+}
+/* }}} */
+
+/* pbuffer() {{{
+ * print a string at the end of a buffer
+ */
+void pbuffer(char *buffer, const char *fmt, ...) {
+	char msg[256];
+	va_list ap;
+
+	va_start(ap, fmt);
+	vsprintf(msg, fmt, ap);
+
+	strcat(buffer, msg);
+
+	va_end(ap);
+}
+/* }}} */
+
+/* pbuffermask() {{{
+ * Prints str to buffer and masks each occurence of c1 with c2.
+ * Returns the number of written chars.
+ */
+int pbuffermask(char *buffer, char *str, char c1, char c2 ) {
+	char *ptr, *dst;
+	int len = 0;
+	ptr = str;
+	dst = buffer + strlen(buffer);
+	while(*ptr != '\0') {
+		if(*ptr == c1) {
+			*dst++ = c2;
+			len ++;
+		} 
+		*dst++ = *ptr++;
+		len++;
+	}
+	return(len);
+}
+/* }}} */
 
 /* strrep() {{{
  * Replace occurences of character c1 by c2.
@@ -320,7 +379,7 @@ void show_record(FILE *outfp, pxdoc_t *pxdoc, pxhead_t *pxh, char *data, int *se
  * Outputs a new record in plain mode
  * A 'new' record is a record which is not in database 1
  */
-void show_plain_insert(FILE *outfp, pxdoc_t *pxdoc, pxhead_t *pxh, char *data, int *selectedfields) {
+void show_plain_insert(FILE *outfp, int pkeyindex, pxdoc_t *pxdoc, pxhead_t *pxh, char *data, int *selectedfields) {
 	fprintf(outfp, "+\t");
 	show_record(outfp, pxdoc, pxh, data, selectedfields);
 }
@@ -330,9 +389,737 @@ void show_plain_insert(FILE *outfp, pxdoc_t *pxdoc, pxhead_t *pxh, char *data, i
  * Outputs an old record in plain mode
  * An 'old' record is a record which is in database 1
  */
-void show_plain_delete(FILE *outfp, pxdoc_t *pxdoc, pxhead_t *pxh, char *data, int *selectedfields) {
+void show_plain_delete(FILE *outfp, int pkeyindex, pxdoc_t *pxdoc, pxhead_t *pxh, char *data, int *selectedfields) {
 	fprintf(outfp, "-\t");
 	show_record(outfp, pxdoc, pxh, data, selectedfields);
+}
+/* }}} */
+
+/* show_plain_update() {{{
+ * Outputs the update sequence in plain mode
+ */
+void show_plain_update(FILE *outfp, int pkeyindex, pxdoc_t *pxdoc1, pxhead_t *pxh1, char *data1, int *selectedfields1, pxdoc_t *pxdoc2, pxhead_t *pxh2, char *data2, int *selectedfields2) {
+	fprintf(outfp, "<\t");
+	show_record(outfp, pxdoc1, pxh1, data1, selectedfields1);
+	fprintf(outfp, ">\t");
+	show_record(outfp, pxdoc2, pxh2, data2, selectedfields2);
+}
+/* }}} */
+
+/* show_sql_insert() {{{
+ * Outputs a new record in sql mode
+ * A 'new' record is a record which is not in database 1
+ */
+void show_sql_insert(FILE *outfp, int pkeyindex, pxdoc_t *pxdoc, pxhead_t *pxh, char *data, int *selectedfields) {
+	pxfield_t *pxf;
+	int i, offset, first;
+
+	pxf = pxh->px_fields;
+	fprintf(outfp, "INSERT INTO %s (", pxh->px_tablename);
+	first = 0;
+	for(i=0; i<pxh->px_numfields; i++) {
+		if(!selectedfields || (selectedfields && selectedfields[i] >= 0)) {
+			if(first == 1)
+				fprintf(outfp, ", ");
+			fprintf(outfp, "%s", pxf->px_fname);
+			first = 1;
+		}
+		pxf++;
+	}
+	fprintf(outfp, ") VALUES (", pxh->px_tablename);
+	pxf = pxh->px_fields;
+	offset = 0;
+	first = 0;
+	for(i=0; i<pxh->px_numfields; i++) {
+		if(!selectedfields || (selectedfields && selectedfields[i] >= 0)) {
+			if(first == 1)
+				fprintf(outfp, ", ");
+			switch(pxf->px_ftype) {
+				case pxfAlpha: {
+					char *value;
+					if(0 < PX_get_data_alpha(pxdoc, &data[offset], pxf->px_flen, &value)) {
+						if(strchr(value, '\'')) {
+							fprintf(outfp, "'");
+							printmask(outfp, value, '\'', '\\');
+							fprintf(outfp, "'");
+						} else
+							fprintf(outfp, "'%s'", value);
+						pxdoc->free(pxdoc, value);
+					} else {
+						fprintf(outfp, "''", value);
+					}
+					first = 1;
+
+					break;
+				}
+				case pxfDate: {
+					long value;
+					int year, month, day;
+					if(0 < PX_get_data_long(pxdoc, &data[offset], pxf->px_flen, &value)) {
+						PX_SdnToGregorian(value+1721425, &year, &month, &day);
+						fprintf(outfp, "'%02d.%02d.%04d'", day, month, year);
+					} else {
+						fprintf(outfp, "NULL");
+					}
+					first = 1;
+					break;
+				}
+				case pxfShort: {
+					short int value;
+					if(0 < PX_get_data_short(pxdoc, &data[offset], pxf->px_flen, &value)) {
+						fprintf(outfp, "%d", value);
+					} else {
+						fprintf(outfp, "NULL");
+					}
+					first = 1;
+					break;
+				}
+				case pxfAutoInc:
+				case pxfTimestamp:
+				case pxfLong: {
+					long value;
+					if(0 < PX_get_data_long(pxdoc, &data[offset], pxf->px_flen, &value)) {
+						fprintf(outfp, "%ld", value);
+					} else {
+						fprintf(outfp, "NULL");
+					}
+					first = 1;
+					break;
+				}
+				case pxfTime: {
+					long value;
+					if(0 < PX_get_data_long(pxdoc, &data[offset], pxf->px_flen, &value)) {
+						fprintf(outfp, "'%02d:%02d:%02.3f'", value/3600000, value/60000%60, value%60000/1000.0);
+					} else {
+						fprintf(outfp, "NULL");
+					}
+					first = 1;
+					break;
+				}
+				case pxfCurrency:
+				case pxfNumber: {
+					double value;
+					if(0 < PX_get_data_double(pxdoc, &data[offset], pxf->px_flen, &value)) {
+						fprintf(outfp, "%g", value);
+					} else {
+						fprintf(outfp, "NULL");
+					}
+					first = 1;
+					break;
+				}
+				case pxfLogical: {
+					char value;
+					if(0 < PX_get_data_byte(pxdoc, &data[offset], pxf->px_flen, &value)) {
+						if(value)
+							fprintf(outfp, "TRUE");
+						else
+							fprintf(outfp, "FALSE");
+					} else {
+						fprintf(outfp, "NULL");
+					}
+					first = 1;
+					break;
+				}
+				case pxfMemoBLOb:
+				case pxfBLOb:
+				case pxfFmtMemoBLOb:
+				case pxfGraphic:
+					fprintf(outfp, "NULL");
+					first = 1;
+					break;
+				case pxfBCD:
+				case pxfBytes:
+					fprintf(outfp, "NULL");
+					first = 1;
+					break;
+				default:
+					fprintf(outfp, "");
+			}
+			offset += pxf->px_flen;
+		}
+		pxf++;
+	}
+	fprintf(outfp, ");\n");
+}
+/* }}} */
+
+/* show_sql_delete() {{{
+ * Outputs an old record in sql mode
+ * An 'old' record is a record which is in database 1
+ */
+void show_sql_delete(FILE *outfp, int pkeyindex, pxdoc_t *pxdoc, pxhead_t *pxh, char *data, int *selectedfields) {
+	pxfield_t *pxf;
+	int i, offset, first;
+
+	pxf = pxh->px_fields;
+	fprintf(outfp, "DELETE FROM %s WHERE ", pxh->px_tablename);
+	if(pkeyindex >= 0) {
+		pxf = &(pxh->px_fields[pkeyindex]);
+		offset = selectedfields[pkeyindex];
+		fprintf(outfp, "%s=", pxf->px_fname);
+		switch(pxf->px_ftype) {
+			case pxfAlpha: {
+				char *value;
+				if(0 < PX_get_data_alpha(pxdoc, &data[offset], pxf->px_flen, &value)) {
+					if(strchr(value, '\'')) {
+						fprintf(outfp, "'");
+						printmask(outfp, value, '\'', '\\');
+						fprintf(outfp, "'");
+					} else
+						fprintf(outfp, "'%s'", value);
+					pxdoc->free(pxdoc, value);
+				} else {
+					fprintf(outfp, "''", value);
+				}
+				first = 1;
+
+				break;
+			}
+			case pxfDate: {
+				long value;
+				int year, month, day;
+				if(0 < PX_get_data_long(pxdoc, &data[offset], pxf->px_flen, &value)) {
+					PX_SdnToGregorian(value+1721425, &year, &month, &day);
+					fprintf(outfp, "'%02d.%02d.%04d'", day, month, year);
+				} else {
+					fprintf(outfp, "NULL");
+				}
+				first = 1;
+				break;
+			}
+			case pxfShort: {
+				short int value;
+				if(0 < PX_get_data_short(pxdoc, &data[offset], pxf->px_flen, &value)) {
+					fprintf(outfp, "%d", value);
+				} else {
+					fprintf(outfp, "NULL");
+				}
+				first = 1;
+				break;
+			}
+			case pxfAutoInc:
+			case pxfTimestamp:
+			case pxfLong: {
+				long value;
+				if(0 < PX_get_data_long(pxdoc, &data[offset], pxf->px_flen, &value)) {
+					fprintf(outfp, "%ld", value);
+				} else {
+					fprintf(outfp, "NULL");
+				}
+				first = 1;
+				break;
+			}
+			case pxfTime: {
+				long value;
+				if(0 < PX_get_data_long(pxdoc, &data[offset], pxf->px_flen, &value)) {
+					fprintf(outfp, "'%02d:%02d:%02.3f'", value/3600000, value/60000%60, value%60000/1000.0);
+				} else {
+					fprintf(outfp, "NULL");
+				}
+				first = 1;
+				break;
+			}
+			case pxfCurrency:
+			case pxfNumber: {
+				double value;
+				if(0 < PX_get_data_double(pxdoc, &data[offset], pxf->px_flen, &value)) {
+					fprintf(outfp, "%g", value);
+				} else {
+					fprintf(outfp, "NULL");
+				}
+				first = 1;
+				break;
+			}
+			case pxfLogical: {
+				char value;
+				if(0 < PX_get_data_byte(pxdoc, &data[offset], pxf->px_flen, &value)) {
+					if(value)
+						fprintf(outfp, "TRUE");
+					else
+						fprintf(outfp, "FALSE");
+				} else {
+					fprintf(outfp, "NULL");
+				}
+				first = 1;
+				break;
+			}
+			case pxfMemoBLOb:
+			case pxfBLOb:
+			case pxfFmtMemoBLOb:
+			case pxfGraphic:
+				fprintf(outfp, "NULL");
+				first = 1;
+				break;
+			case pxfBCD:
+			case pxfBytes:
+				fprintf(outfp, "NULL");
+				first = 1;
+				break;
+			default:
+				fprintf(outfp, "");
+		}
+	} else {
+		first = 0;
+		offset = 0;
+		for(i=0; i<pxh->px_numfields; i++) {
+			if(!selectedfields || (selectedfields && selectedfields[i] >= 0)) {
+				if(first == 1)
+					fprintf(outfp, ", ");
+				fprintf(outfp, "%s=", pxf->px_fname);
+				switch(pxf->px_ftype) {
+					case pxfAlpha: {
+						char *value;
+						if(0 < PX_get_data_alpha(pxdoc, &data[offset], pxf->px_flen, &value)) {
+							if(strchr(value, '\'')) {
+								fprintf(outfp, "'");
+								printmask(outfp, value, '\'', '\\');
+								fprintf(outfp, "'");
+							} else
+								fprintf(outfp, "'%s'", value);
+							pxdoc->free(pxdoc, value);
+						} else {
+							fprintf(outfp, "''", value);
+						}
+						first = 1;
+
+						break;
+					}
+					case pxfDate: {
+						long value;
+						int year, month, day;
+						if(0 < PX_get_data_long(pxdoc, &data[offset], pxf->px_flen, &value)) {
+							PX_SdnToGregorian(value+1721425, &year, &month, &day);
+							fprintf(outfp, "'%02d.%02d.%04d'", day, month, year);
+						} else {
+							fprintf(outfp, "NULL");
+						}
+						first = 1;
+						break;
+					}
+					case pxfShort: {
+						short int value;
+						if(0 < PX_get_data_short(pxdoc, &data[offset], pxf->px_flen, &value)) {
+							fprintf(outfp, "%d", value);
+						} else {
+							fprintf(outfp, "NULL");
+						}
+						first = 1;
+						break;
+					}
+					case pxfAutoInc:
+					case pxfTimestamp:
+					case pxfLong: {
+						long value;
+						if(0 < PX_get_data_long(pxdoc, &data[offset], pxf->px_flen, &value)) {
+							fprintf(outfp, "%ld", value);
+						} else {
+							fprintf(outfp, "NULL");
+						}
+						first = 1;
+						break;
+					}
+					case pxfTime: {
+						long value;
+						if(0 < PX_get_data_long(pxdoc, &data[offset], pxf->px_flen, &value)) {
+							fprintf(outfp, "'%02d:%02d:%02.3f'", value/3600000, value/60000%60, value%60000/1000.0);
+						} else {
+							fprintf(outfp, "NULL");
+						}
+						first = 1;
+						break;
+					}
+					case pxfCurrency:
+					case pxfNumber: {
+						double value;
+						if(0 < PX_get_data_double(pxdoc, &data[offset], pxf->px_flen, &value)) {
+							fprintf(outfp, "%g", value);
+						} else {
+							fprintf(outfp, "NULL");
+						}
+						first = 1;
+						break;
+					}
+					case pxfLogical: {
+						char value;
+						if(0 < PX_get_data_byte(pxdoc, &data[offset], pxf->px_flen, &value)) {
+							if(value)
+								fprintf(outfp, "TRUE");
+							else
+								fprintf(outfp, "FALSE");
+						} else {
+							fprintf(outfp, "NULL");
+						}
+						first = 1;
+						break;
+					}
+					case pxfMemoBLOb:
+					case pxfBLOb:
+					case pxfFmtMemoBLOb:
+					case pxfGraphic:
+						fprintf(outfp, "NULL");
+						first = 1;
+						break;
+					case pxfBCD:
+					case pxfBytes:
+						fprintf(outfp, "NULL");
+						first = 1;
+						break;
+					default:
+						fprintf(outfp, "");
+				}
+				offset += pxf->px_flen;
+			}
+			pxf++;
+		}
+	}
+	fprintf(outfp, ";\n");
+}
+/* }}} */
+
+/* show_sql_update() {{{
+ * Outputs the update sequence in plain mode
+ */
+void show_sql_update(FILE *outfp, int pkeyindex, pxdoc_t *pxdoc1, pxhead_t *pxh1, char *data1, int *selectedfields1, pxdoc_t *pxdoc2, pxhead_t *pxh2, char *data2, int *selectedfields2) {
+	pxfield_t *pxf;
+	int i, offset, first;
+
+	fprintf(outfp, "UPDATE %s SET ", pxh2->px_tablename);
+	first = 0;
+	offset = 0;
+	pxf = pxh2->px_fields;
+	for(i=0; i<pxh2->px_numfields; i++) {
+		if(!selectedfields2 || (selectedfields2 && selectedfields2[i] >= 0)) {
+			if(first == 1)
+				fprintf(outfp, ", ");
+			fprintf(outfp, "%s=", pxf->px_fname);
+			switch(pxf->px_ftype) {
+				case pxfAlpha: {
+					char *value;
+					if(0 < PX_get_data_alpha(pxdoc2, &data2[offset], pxf->px_flen, &value)) {
+						if(strchr(value, '\'')) {
+							fprintf(outfp, "'");
+							printmask(outfp, value, '\'', '\\');
+							fprintf(outfp, "'");
+						} else
+							fprintf(outfp, "'%s'", value);
+						pxdoc2->free(pxdoc2, value);
+					} else {
+						fprintf(outfp, "''", value);
+					}
+					first = 1;
+
+					break;
+				}
+				case pxfDate: {
+					long value;
+					int year, month, day;
+					if(0 < PX_get_data_long(pxdoc2, &data2[offset], pxf->px_flen, &value)) {
+						PX_SdnToGregorian(value+1721425, &year, &month, &day);
+						fprintf(outfp, "'%02d.%02d.%04d'", day, month, year);
+					} else {
+						fprintf(outfp, "NULL");
+					}
+					first = 1;
+					break;
+				}
+				case pxfShort: {
+					short int value;
+					if(0 < PX_get_data_short(pxdoc2, &data2[offset], pxf->px_flen, &value)) {
+						fprintf(outfp, "%d", value);
+					} else {
+						fprintf(outfp, "NULL");
+					}
+					first = 1;
+					break;
+				}
+				case pxfAutoInc:
+				case pxfTimestamp:
+				case pxfLong: {
+					long value;
+					if(0 < PX_get_data_long(pxdoc2, &data2[offset], pxf->px_flen, &value)) {
+						fprintf(outfp, "%ld", value);
+					} else {
+						fprintf(outfp, "NULL");
+					}
+					first = 1;
+					break;
+				}
+				case pxfTime: {
+					long value;
+					if(0 < PX_get_data_long(pxdoc2, &data2[offset], pxf->px_flen, &value)) {
+						fprintf(outfp, "'%02d:%02d:%02.3f'", value/3600000, value/60000%60, value%60000/1000.0);
+					} else {
+						fprintf(outfp, "NULL");
+					}
+					first = 1;
+					break;
+				}
+				case pxfCurrency:
+				case pxfNumber: {
+					double value;
+					if(0 < PX_get_data_double(pxdoc2, &data2[offset], pxf->px_flen, &value)) {
+						fprintf(outfp, "%g", value);
+					} else {
+						fprintf(outfp, "NULL");
+					}
+					first = 1;
+					break;
+				}
+				case pxfLogical: {
+					char value;
+					if(0 < PX_get_data_byte(pxdoc2, &data2[offset], pxf->px_flen, &value)) {
+						if(value)
+							fprintf(outfp, "TRUE");
+						else
+							fprintf(outfp, "FALSE");
+					} else {
+						fprintf(outfp, "NULL");
+					}
+					first = 1;
+					break;
+				}
+				case pxfMemoBLOb:
+				case pxfBLOb:
+				case pxfFmtMemoBLOb:
+				case pxfGraphic:
+					fprintf(outfp, "NULL");
+					first = 1;
+					break;
+				case pxfBCD:
+				case pxfBytes:
+					fprintf(outfp, "NULL");
+					first = 1;
+					break;
+				default:
+					fprintf(outfp, "");
+			}
+			offset += pxf->px_flen;
+		}
+		pxf++;
+	}
+
+	fprintf(outfp, " WHERE ");
+	if(pkeyindex >= 0) {
+		pxf = &(pxh1->px_fields[pkeyindex]);
+		offset = selectedfields1[pkeyindex];
+		fprintf(outfp, "%s=", pxf->px_fname);
+		switch(pxf->px_ftype) {
+			case pxfAlpha: {
+				char *value;
+				if(0 < PX_get_data_alpha(pxdoc1, &data1[offset], pxf->px_flen, &value)) {
+					if(strchr(value, '\'')) {
+						fprintf(outfp, "'");
+						printmask(outfp, value, '\'', '\\');
+						fprintf(outfp, "'");
+					} else
+						fprintf(outfp, "'%s'", value);
+					pxdoc1->free(pxdoc1, value);
+				} else {
+					fprintf(outfp, "''", value);
+				}
+				first = 1;
+
+				break;
+			}
+			case pxfDate: {
+				long value;
+				int year, month, day;
+				if(0 < PX_get_data_long(pxdoc1, &data1[offset], pxf->px_flen, &value)) {
+					PX_SdnToGregorian(value+1721425, &year, &month, &day);
+					fprintf(outfp, "'%02d.%02d.%04d'", day, month, year);
+				} else {
+					fprintf(outfp, "NULL");
+				}
+				first = 1;
+				break;
+			}
+			case pxfShort: {
+				short int value;
+				if(0 < PX_get_data_short(pxdoc1, &data1[offset], pxf->px_flen, &value)) {
+					fprintf(outfp, "%d", value);
+				} else {
+					fprintf(outfp, "NULL");
+				}
+				first = 1;
+				break;
+			}
+			case pxfAutoInc:
+			case pxfTimestamp:
+			case pxfLong: {
+				long value;
+				if(0 < PX_get_data_long(pxdoc1, &data1[offset], pxf->px_flen, &value)) {
+					fprintf(outfp, "%ld", value);
+				} else {
+					fprintf(outfp, "NULL");
+				}
+				first = 1;
+				break;
+			}
+			case pxfTime: {
+				long value;
+				if(0 < PX_get_data_long(pxdoc1, &data1[offset], pxf->px_flen, &value)) {
+					fprintf(outfp, "'%02d:%02d:%02.3f'", value/3600000, value/60000%60, value%60000/1000.0);
+				} else {
+					fprintf(outfp, "NULL");
+				}
+				first = 1;
+				break;
+			}
+			case pxfCurrency:
+			case pxfNumber: {
+				double value;
+				if(0 < PX_get_data_double(pxdoc1, &data1[offset], pxf->px_flen, &value)) {
+					fprintf(outfp, "%g", value);
+				} else {
+					fprintf(outfp, "NULL");
+				}
+				first = 1;
+				break;
+			}
+			case pxfLogical: {
+				char value;
+				if(0 < PX_get_data_byte(pxdoc1, &data1[offset], pxf->px_flen, &value)) {
+					if(value)
+						fprintf(outfp, "TRUE");
+					else
+						fprintf(outfp, "FALSE");
+				} else {
+					fprintf(outfp, "NULL");
+				}
+				first = 1;
+				break;
+			}
+			case pxfMemoBLOb:
+			case pxfBLOb:
+			case pxfFmtMemoBLOb:
+			case pxfGraphic:
+				fprintf(outfp, "NULL");
+				first = 1;
+				break;
+			case pxfBCD:
+			case pxfBytes:
+				fprintf(outfp, "NULL");
+				first = 1;
+				break;
+			default:
+				fprintf(outfp, "");
+		}
+	} else {
+		first = 0;
+		offset = 0;
+		pxf = pxh1->px_fields;
+		for(i=0; i<pxh1->px_numfields; i++) {
+			if(!selectedfields1 || (selectedfields1 && selectedfields1[i] >= 0)) {
+				if(first == 1)
+					fprintf(outfp, " AND ");
+				fprintf(outfp, "%s=", pxf->px_fname);
+				switch(pxf->px_ftype) {
+					case pxfAlpha: {
+						char *value;
+						if(0 < PX_get_data_alpha(pxdoc1, &data1[offset], pxf->px_flen, &value)) {
+							if(strchr(value, '\'')) {
+								fprintf(outfp, "'");
+								printmask(outfp, value, '\'', '\\');
+								fprintf(outfp, "'");
+							} else
+								fprintf(outfp, "'%s'", value);
+							pxdoc1->free(pxdoc1, value);
+						} else {
+							fprintf(outfp, "''", value);
+						}
+						first = 1;
+
+						break;
+					}
+					case pxfDate: {
+						long value;
+						int year, month, day;
+						if(0 < PX_get_data_long(pxdoc1, &data1[offset], pxf->px_flen, &value)) {
+							PX_SdnToGregorian(value+1721425, &year, &month, &day);
+							fprintf(outfp, "'%02d.%02d.%04d'", day, month, year);
+						} else {
+							fprintf(outfp, "NULL");
+						}
+						first = 1;
+						break;
+					}
+					case pxfShort: {
+						short int value;
+						if(0 < PX_get_data_short(pxdoc1, &data1[offset], pxf->px_flen, &value)) {
+							fprintf(outfp, "%d", value);
+						} else {
+							fprintf(outfp, "NULL");
+						}
+						first = 1;
+						break;
+					}
+					case pxfAutoInc:
+					case pxfTimestamp:
+					case pxfLong: {
+						long value;
+						if(0 < PX_get_data_long(pxdoc1, &data1[offset], pxf->px_flen, &value)) {
+							fprintf(outfp, "%ld", value);
+						} else {
+							fprintf(outfp, "NULL");
+						}
+						first = 1;
+						break;
+					}
+					case pxfTime: {
+						long value;
+						if(0 < PX_get_data_long(pxdoc1, &data1[offset], pxf->px_flen, &value)) {
+							fprintf(outfp, "'%02d:%02d:%02.3f'", value/3600000, value/60000%60, value%60000/1000.0);
+						} else {
+							fprintf(outfp, "NULL");
+						}
+						first = 1;
+						break;
+					}
+					case pxfCurrency:
+					case pxfNumber: {
+						double value;
+						if(0 < PX_get_data_double(pxdoc1, &data1[offset], pxf->px_flen, &value)) {
+							fprintf(outfp, "%g", value);
+						} else {
+							fprintf(outfp, "NULL");
+						}
+						first = 1;
+						break;
+					}
+					case pxfLogical: {
+						char value;
+						if(0 < PX_get_data_byte(pxdoc1, &data1[offset], pxf->px_flen, &value)) {
+							if(value)
+								fprintf(outfp, "TRUE");
+							else
+								fprintf(outfp, "FALSE");
+						} else {
+							fprintf(outfp, "NULL");
+						}
+						first = 1;
+						break;
+					}
+					case pxfMemoBLOb:
+					case pxfBLOb:
+					case pxfFmtMemoBLOb:
+					case pxfGraphic:
+						fprintf(outfp, "NULL");
+						first = 1;
+						break;
+					case pxfBCD:
+					case pxfBytes:
+						fprintf(outfp, "NULL");
+						first = 1;
+						break;
+					default:
+						fprintf(outfp, "");
+				}
+				offset += pxf->px_flen;
+			}
+			pxf++;
+		}
+	}
+	fprintf(outfp, ";\n");
 }
 /* }}} */
 
@@ -714,9 +1501,10 @@ int main(int argc, char *argv[]) {
 	char *outputfile = NULL;
 	char *pindexfile1 = NULL;
 	char *pindexfile2 = NULL;
-	char *pkey = NULL;
-	int pkeystart1, pkeystart2;
-	int pkeylen1, pkeylen2;
+	char *pkey = NULL;           /* Name of primary key field */
+	int pkeystart1, pkeystart2;  /* start of pkey field in data record */
+	int pkeylen1, pkeylen2;      /* length of pkey field */
+	int pkeyindex1, pkeyindex2;  /* Index in field array */
 	char *fieldregex = NULL;
 	char *targetencoding = NULL;
 	FILE *outfp = NULL;
@@ -1054,6 +1842,7 @@ int main(int argc, char *argv[]) {
 	 * are found the output will indicate that the record has changed and not
 	 * a new record was added a an old one deleted.
 	 */
+	pkeyindex1 = pkeyindex2 = -1;
 	if(pkey) {
 		pxfield_t *pxf;
 		int i;
@@ -1064,6 +1853,7 @@ int main(int argc, char *argv[]) {
 		for(i=0; i<pxh1->px_numfields; i++) {
 			if(0 == strcasecmp(pkey, pxf->px_fname)) {
 				pkeylen1 = pxf->px_flen;
+				pkeyindex1 = i;
 				break;
 			}
 			if(fieldregex) {
@@ -1098,6 +1888,7 @@ int main(int argc, char *argv[]) {
 		for(i=0; i<pxh2->px_numfields; i++) {
 			if(0 == strcasecmp(pkey, pxf->px_fname)) {
 				pkeylen2 = pxf->px_flen;
+				pkeyindex2 = i;
 				break;
 			}
 			if(fieldregex) {
@@ -1473,6 +2264,8 @@ int main(int argc, char *argv[]) {
 					for(i=0; i<pxh1->px_numfields; i++) {
 						if(selectedfields1[i] >= 0) {
 							memcpy(&dataptr[realrecsize1], &dataptr[srcoffset], pxf[i].px_flen);
+							/* reset the selectfields entries to the actual start in the new record */
+							selectedfields1[i] = realrecsize1;
 							realrecsize1 += pxf[i].px_flen;
 						}
 						srcoffset += pxf[i].px_flen;
@@ -1500,6 +2293,8 @@ int main(int argc, char *argv[]) {
 					for(i=0; i<pxh2->px_numfields; i++) {
 						if(selectedfields2[i] >= 0) {
 							memcpy(&dataptr[realrecsize2], &dataptr[srcoffset], pxf[i].px_flen);
+							/* reset the selectfields entries to the actual start in the new record */
+							selectedfields2[i] = realrecsize2;
 							realrecsize2 += pxf[i].px_flen;
 						}
 						srcoffset += pxf[i].px_flen;
@@ -1602,13 +2397,17 @@ int main(int argc, char *argv[]) {
 				}
 				if(notinlcs1 == 1) {
 					if(outputplain)
-						show_plain_delete(outfp, pxdoc1, pxh1, records1[i], selectedfields1);
+						show_plain_delete(outfp, pkeyindex1, pxdoc1, pxh1, records1[i], selectedfields1);
+					else if(outputsql)
+						show_sql_delete(outfp, pkeyindex1, pxdoc1, pxh1, records1[i], selectedfields1);
 					i++;
 					deletedrecs++;
 				}
 				if(notinlcs2 == 1) {
 					if(outputplain)
-						show_plain_insert(outfp, pxdoc2, pxh2, records2[j], selectedfields2);
+						show_plain_insert(outfp, pkeyindex2, pxdoc2, pxh2, records2[j], selectedfields2);
+					else if(outputsql)
+						show_sql_insert(outfp, pkeyindex2, pxdoc2, pxh2, records2[j], selectedfields2);
 					j++;
 					addedrecs++;
 				}
@@ -1626,10 +2425,9 @@ int main(int argc, char *argv[]) {
 
 					updatedrecs++;
 					if(outputplain) {
-						fprintf(outfp, "<\t");
-						show_record(outfp, pxdoc1, pxh1, records1[i], selectedfields1);
-						fprintf(outfp, ">\t");
-						show_record(outfp, pxdoc2, pxh2, records2[j], selectedfields2);
+						show_plain_update(outfp, pkeyindex1, pxdoc1, pxh1, records1[i], selectedfields1, pxdoc2, pxh2, records2[j], selectedfields2);
+					} else if(outputsql) {
+						show_sql_update(outfp, pkeyindex1, pxdoc1, pxh1, records1[i], selectedfields1, pxdoc2, pxh2, records2[j], selectedfields2);
 					}
 					if(outputplain && showrecorddiff)
 						show_record_diff(outfp, pxdoc1, pxh1, records1[i], selectedfields1, pxdoc2, pxh2, records2[j], selectedfields2);
@@ -1643,14 +2441,14 @@ int main(int argc, char *argv[]) {
 		/* Output all remaining records in first database */
 		while(i < pxh1->px_numrecords) {
 			if(outputplain)
-				show_plain_delete(outfp, pxdoc1, pxh1, records1[i++], selectedfields1);
+				show_plain_delete(outfp, pkeyindex1, pxdoc1, pxh1, records1[i++], selectedfields1);
 			deletedrecs++;
 		}
 
 		/* Output all remaining records in second database */
 		while(j < pxh2->px_numrecords) {
 			if(outputplain)
-				show_plain_insert(outfp, pxdoc2, pxh2, records2[j++], selectedfields2);
+				show_plain_insert(outfp, pkeyindex2, pxdoc2, pxh2, records2[j++], selectedfields2);
 			addedrecs++;
 		}
 
