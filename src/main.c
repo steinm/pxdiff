@@ -19,6 +19,8 @@
 #include <paradox.h>
 #endif
 
+int qsort_len;
+
 /* strrep() {{{
  * Replace occurences of character c1 by c2.
  */
@@ -54,12 +56,20 @@ int sort(void **data, int len, int (datacmp)(void *data1, void *data2, size_t n)
 }
 /* }}} */
 
-/* fieldcmp() {{{
+/* qsort_comp_records()
+ */
+int qsort_comp_records(const void *data1, const void *data2) {
+	void **d1 = (void **) data1;
+	void **d2 = (void **) data2;
+	return(memcmp(*d1, *d2, qsort_len));
+}
+/* }}} */
+
+/* recordcmp() {{{
  * Compares two records. Returns -1, 0, or 1 respectively
  * to be data1 found less, equal, or greater than data2.
  */
 int recordcmp(void *data1, void *data2, size_t n) {
-	int d;
 	return(memcmp(data1, data2, n));
 }
 /* }}} */
@@ -517,6 +527,8 @@ void usage(char *progname) {
 	printf("\n");
 	printf(_("  -t, --schema        compare schema."));
 	printf("\n");
+	printf(_("  -s, --sort          sort data before calculating difference."));
+	printf("\n");
 	printf(_("  --mode=MODE         set compare mode (schema, data)."));
 	printf("\n");
 	printf(_("  -o, --output-file=FILE output data into file instead of stdout."));
@@ -578,6 +590,7 @@ int main(int argc, char *argv[]) {
 	int schemasdiffer = 0;
 	int usegsf = 0;
 	int verbose = 0;
+	int sortdata = 0;
 	char delimiter = '\t';
 	char enclosure = '"';
 	char *inputfile1 = NULL;
@@ -624,7 +637,7 @@ int main(int argc, char *argv[]) {
 			{"primary-key", 1, 0, 'k'},
 			{0, 0, 0, 0}
 		};
-		c = getopt_long (argc, argv, "ivtdf:r:o:k:h",
+		c = getopt_long (argc, argv, "ivtdsf:r:o:k:h",
 				long_options, &option_index);
 		if (c == -1)
 			break;
@@ -653,6 +666,9 @@ int main(int argc, char *argv[]) {
 				break;
 			case 'd':
 				comparedata = 1;
+				break;
+			case 's':
+				sortdata = 1;
 				break;
 			case 'r':
 				targetencoding = strdup(optarg);
@@ -1279,6 +1295,13 @@ int main(int argc, char *argv[]) {
 			PX_close(pxdoc2);
 			PX_delete(pxdoc2);
 			exit(1);
+		}
+
+		/* Sort to the data arrays */
+		if(sortdata) {
+			qsort_len = realrecsize1;
+			qsort((void *)records1, pxh1->px_numrecords, sizeof(char *), qsort_comp_records);
+			qsort((void *)records2, pxh2->px_numrecords, sizeof(char *), qsort_comp_records);
 		}
 
 		/* Calculate the length of the common subsequence */
