@@ -213,26 +213,6 @@ void show_field(FILE *outfp, pxfield_t *pxf) {
 }
 /* }}} */
 
-/* show_plain_insert() {{{
- * Outputs a new record in plain mode
- * A 'new' record is a record which is not in database 1
- */
-void show_plain_insert(FILE *outfp, pxdoc_t *pxdoc, pxhead_t *pxh, char *data, int *selectedfields) {
-	fprintf(outfp, "+\t");
-	show_record(outfp, pxdoc, pxh, data, selectedfields);
-}
-/* }}} */
-
-/* show_plain_delete() {{{
- * Outputs an old record in plain mode
- * An 'old' record is a record which is in database 1
- */
-void show_plain_delete(FILE *outfp, pxdoc_t *pxdoc, pxhead_t *pxh, char *data, int *selectedfields) {
-	fprintf(outfp, "-\t");
-	show_record(outfp, pxdoc, pxh, data, selectedfields);
-}
-/* }}} */
-
 /* show_record() {{{
  * Outputs a record as csv
  */
@@ -333,6 +313,26 @@ void show_record(FILE *outfp, pxdoc_t *pxdoc, pxhead_t *pxh, char *data, int *se
 		pxf++;
 	}
 	fprintf(outfp, "\n");
+}
+/* }}} */
+
+/* show_plain_insert() {{{
+ * Outputs a new record in plain mode
+ * A 'new' record is a record which is not in database 1
+ */
+void show_plain_insert(FILE *outfp, pxdoc_t *pxdoc, pxhead_t *pxh, char *data, int *selectedfields) {
+	fprintf(outfp, "+\t");
+	show_record(outfp, pxdoc, pxh, data, selectedfields);
+}
+/* }}} */
+
+/* show_plain_delete() {{{
+ * Outputs an old record in plain mode
+ * An 'old' record is a record which is in database 1
+ */
+void show_plain_delete(FILE *outfp, pxdoc_t *pxdoc, pxhead_t *pxh, char *data, int *selectedfields) {
+	fprintf(outfp, "-\t");
+	show_record(outfp, pxdoc, pxh, data, selectedfields);
 }
 /* }}} */
 
@@ -629,7 +629,7 @@ void usage(char *progname) {
 	printf("\n");
 	printf(_("  --mode=MODE         set compare mode (schema, data)."));
 	printf("\n");
-	printf(_("  --output-mode=MODE  set output mode (plain (default), sql)."));
+	printf(_("  --output-mode=MODE  set output mode (plain (default), sql, stat)."));
 	printf("\n");
 	printf(_("  -o, --output-file=FILE output data into file instead of stdout."));
 	printf("\n");
@@ -695,6 +695,7 @@ int main(int argc, char *argv[]) {
 	int outputdebug = 0;
 	int outputplain = 0;
 	int outputsql = 0;
+	int outputstat = 0;
 	int schemasdiffer = 0;
 	int comparecommon = 0;
 	int disregardcodepage = 0;
@@ -702,6 +703,10 @@ int main(int argc, char *argv[]) {
 	int usegsf = 0;
 	int verbose = 0;
 	int sortdata = 0;
+	int addedrecs = 0;
+	int deletedrecs = 0;
+	int equalrecs = 0;
+	int updatedrecs = 0;
 	char delimiter = '\t';
 	char enclosure = '"';
 	char *inputfile1 = NULL;
@@ -771,6 +776,8 @@ int main(int argc, char *argv[]) {
 					outputplain = 1;
 				} else if(!strcmp(optarg, "sql")) {
 					outputsql = 1;
+				} else if(!strcmp(optarg, "stat")) {
+					outputstat = 1;
 				} else if(!strcmp(optarg, "debug")) {
 					outputdebug = 1;
 				}
@@ -844,7 +851,7 @@ int main(int argc, char *argv[]) {
 		compareschema = 1;
 
 	/* output in plain format is the default */
-	if(!outputplain && !outputsql && !outputdebug)
+	if(!outputplain && !outputsql && !outputstat && !outputdebug)
 		outputplain = 1;
 
 	if(!inputfile1 || !inputfile2) {
@@ -1594,10 +1601,16 @@ int main(int argc, char *argv[]) {
 					notinlcs2 = 1;
 				}
 				if(notinlcs1 == 1) {
-					show_plain_delete(outfp, pxdoc1, pxh1, records1[i++], selectedfields1);
+					if(outputplain)
+						show_plain_delete(outfp, pxdoc1, pxh1, records1[i], selectedfields1);
+					i++;
+					deletedrecs++;
 				}
 				if(notinlcs2 == 1) {
-					show_plain_insert(outfp, pxdoc2, pxh2, records2[j++], selectedfields2);
+					if(outputplain)
+						show_plain_insert(outfp, pxdoc2, pxh2, records2[j], selectedfields2);
+					j++;
+					addedrecs++;
 				}
 			} else {
 				/* If only the primary key has been taken to find differences
@@ -1611,12 +1624,17 @@ int main(int argc, char *argv[]) {
 //					hex_dump(outfp, records2[j], recordsize);
 //					fprintf(outfp, "\n");
 
-					fprintf(outfp, "<\t");
-					show_record(outfp, pxdoc1, pxh1, records1[i], selectedfields1);
-					fprintf(outfp, ">\t");
-					show_record(outfp, pxdoc2, pxh2, records2[j], selectedfields2);
-					if(showrecorddiff)
+					updatedrecs++;
+					if(outputplain) {
+						fprintf(outfp, "<\t");
+						show_record(outfp, pxdoc1, pxh1, records1[i], selectedfields1);
+						fprintf(outfp, ">\t");
+						show_record(outfp, pxdoc2, pxh2, records2[j], selectedfields2);
+					}
+					if(outputplain && showrecorddiff)
 						show_record_diff(outfp, pxdoc1, pxh1, records1[i], selectedfields1, pxdoc2, pxh2, records2[j], selectedfields2);
+				} else {
+					equalrecs++;
 				}
 				i++; j++; k++;
 			}
@@ -1624,12 +1642,27 @@ int main(int argc, char *argv[]) {
 
 		/* Output all remaining records in first database */
 		while(i < pxh1->px_numrecords) {
-			show_plain_delete(outfp, pxdoc1, pxh1, records1[i++], selectedfields1);
+			if(outputplain)
+				show_plain_delete(outfp, pxdoc1, pxh1, records1[i++], selectedfields1);
+			deletedrecs++;
 		}
 
 		/* Output all remaining records in second database */
 		while(j < pxh2->px_numrecords) {
-			show_plain_insert(outfp, pxdoc2, pxh2, records2[j++], selectedfields2);
+			if(outputplain)
+				show_plain_insert(outfp, pxdoc2, pxh2, records2[j++], selectedfields2);
+			addedrecs++;
+		}
+
+		if(outputstat) {
+			fprintf(outfp, _("%d records deleted"), deletedrecs);
+			fprintf(outfp, "\n");
+			fprintf(outfp, _("%d records added"), addedrecs);
+			fprintf(outfp, "\n");
+			fprintf(outfp, _("%d records updated"), updatedrecs);
+			fprintf(outfp, "\n");
+			fprintf(outfp, _("%d identical records"), equalrecs);
+			fprintf(outfp, "\n");
 		}
 
 		for(i=0; i<pxh1->px_numrecords+1; i++)

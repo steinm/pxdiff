@@ -1,4 +1,6 @@
 Version 0.0.6
+	- initial support for output-mode, currently only plain and stat is
+	  supported
 	- new option --show-record-diff which enables the output of differences
 	  within a record
 	- fixed the record comparison when a primary key is given
