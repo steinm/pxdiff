@@ -319,7 +319,6 @@ void show_record(FILE *outfp, pxdoc_t *pxdoc, pxhead_t *pxh, char *data, int *se
 					break;
 					}
 				case pxfAutoInc:
-				case pxfTimestamp:
 				case pxfLong: {
 					long value;
 					if(0 < PX_get_data_long(pxdoc, &data[offset], pxf->px_flen, &value)) {
@@ -331,7 +330,7 @@ void show_record(FILE *outfp, pxdoc_t *pxdoc, pxhead_t *pxh, char *data, int *se
 				case pxfTime: {
 					long value;
 					if(0 < PX_get_data_long(pxdoc, &data[offset], pxf->px_flen, &value)) {
-						fprintf(outfp, "'%02d:%02d:%02.3f'", value/3600000, value/60000%60, value%60000/1000.0);
+						fprintf(outfp, "%02d:%02d:%02.3f", value/3600000, value/60000%60, value%60000/1000.0);
 					}
 					first = 1;
 					break;
@@ -341,6 +340,16 @@ void show_record(FILE *outfp, pxdoc_t *pxdoc, pxhead_t *pxh, char *data, int *se
 					double value;
 					if(0 < PX_get_data_double(pxdoc, &data[offset], pxf->px_flen, &value)) {
 						fprintf(outfp, "%f", value);
+					} 
+					first = 1;
+					break;
+					} 
+				case pxfTimestamp: {
+					double value;
+					if(0 < PX_get_data_double(pxdoc, &data[offset], pxf->px_flen, &value)) {
+						char *str = PX_timestamp2string(pxdoc, value, "H:i:s d.m.Y");
+						fprintf(outfp, "%s", str);
+						pxdoc->free(pxdoc, str);
 					} 
 					first = 1;
 					break;
@@ -475,7 +484,6 @@ void show_sql_insert(FILE *outfp, int pkeyindex, pxdoc_t *pxdoc, pxhead_t *pxh, 
 					break;
 				}
 				case pxfAutoInc:
-				case pxfTimestamp:
 				case pxfLong: {
 					long value;
 					if(0 < PX_get_data_long(pxdoc, &data[offset], pxf->px_flen, &value)) {
@@ -507,6 +515,16 @@ void show_sql_insert(FILE *outfp, int pkeyindex, pxdoc_t *pxdoc, pxhead_t *pxh, 
 					first = 1;
 					break;
 				}
+				case pxfTimestamp: {
+					double value;
+					if(0 < PX_get_data_double(pxdoc, &data[offset], pxf->px_flen, &value)) {
+						char *str = PX_timestamp2string(pxdoc, value, "Y-m-d H:i:s");
+						fprintf(outfp, "'%s'", str);
+						pxdoc->free(pxdoc, str);
+					} 
+					first = 1;
+					break;
+					} 
 				case pxfLogical: {
 					char value;
 					if(0 < PX_get_data_byte(pxdoc, &data[offset], pxf->px_flen, &value)) {
@@ -602,7 +620,6 @@ void show_sql_delete(FILE *outfp, int pkeyindex, pxdoc_t *pxdoc, pxhead_t *pxh, 
 				break;
 			}
 			case pxfAutoInc:
-			case pxfTimestamp:
 			case pxfLong: {
 				long value;
 				if(0 < PX_get_data_long(pxdoc, &data[offset], pxf->px_flen, &value)) {
@@ -634,6 +651,16 @@ void show_sql_delete(FILE *outfp, int pkeyindex, pxdoc_t *pxdoc, pxhead_t *pxh, 
 				first = 1;
 				break;
 			}
+			case pxfTimestamp: {
+				double value;
+				if(0 < PX_get_data_double(pxdoc, &data[offset], pxf->px_flen, &value)) {
+					char *str = PX_timestamp2string(pxdoc, value, "Y-m-d H:i:s");
+					fprintf(outfp, "'%s'", str);
+					pxdoc->free(pxdoc, str);
+				} 
+				first = 1;
+				break;
+				} 
 			case pxfLogical: {
 				char value;
 				if(0 < PX_get_data_byte(pxdoc, &data[offset], pxf->px_flen, &value)) {
@@ -711,7 +738,6 @@ void show_sql_delete(FILE *outfp, int pkeyindex, pxdoc_t *pxdoc, pxhead_t *pxh, 
 						break;
 					}
 					case pxfAutoInc:
-					case pxfTimestamp:
 					case pxfLong: {
 						long value;
 						if(0 < PX_get_data_long(pxdoc, &data[offset], pxf->px_flen, &value)) {
@@ -743,6 +769,16 @@ void show_sql_delete(FILE *outfp, int pkeyindex, pxdoc_t *pxdoc, pxhead_t *pxh, 
 						first = 1;
 						break;
 					}
+					case pxfTimestamp: {
+						double value;
+						if(0 < PX_get_data_double(pxdoc, &data[offset], pxf->px_flen, &value)) {
+							char *str = PX_timestamp2string(pxdoc, value, "Y-m-d H:i:s");
+							fprintf(outfp, "'%s'", str);
+							pxdoc->free(pxdoc, str);
+						} 
+						first = 1;
+						break;
+						} 
 					case pxfLogical: {
 						char value;
 						if(0 < PX_get_data_byte(pxdoc, &data[offset], pxf->px_flen, &value)) {
@@ -837,7 +873,6 @@ void show_sql_update(FILE *outfp, int pkeyindex, pxdoc_t *pxdoc1, pxhead_t *pxh1
 					break;
 				}
 				case pxfAutoInc:
-				case pxfTimestamp:
 				case pxfLong: {
 					long value;
 					if(0 < PX_get_data_long(pxdoc2, &data2[offset], pxf->px_flen, &value)) {
@@ -869,6 +904,16 @@ void show_sql_update(FILE *outfp, int pkeyindex, pxdoc_t *pxdoc1, pxhead_t *pxh1
 					first = 1;
 					break;
 				}
+				case pxfTimestamp: {
+					double value;
+					if(0 < PX_get_data_double(pxdoc2, &data2[offset], pxf->px_flen, &value)) {
+						char *str = PX_timestamp2string(pxdoc2, value, "Y-m-d H:i:s");
+						fprintf(outfp, "'%s'", str);
+						pxdoc2->free(pxdoc2, str);
+					} 
+					first = 1;
+					break;
+					} 
 				case pxfLogical: {
 					char value;
 					if(0 < PX_get_data_byte(pxdoc2, &data2[offset], pxf->px_flen, &value)) {
@@ -953,7 +998,6 @@ void show_sql_update(FILE *outfp, int pkeyindex, pxdoc_t *pxdoc1, pxhead_t *pxh1
 				break;
 			}
 			case pxfAutoInc:
-			case pxfTimestamp:
 			case pxfLong: {
 				long value;
 				if(0 < PX_get_data_long(pxdoc1, &data1[offset], pxf->px_flen, &value)) {
@@ -979,6 +1023,18 @@ void show_sql_update(FILE *outfp, int pkeyindex, pxdoc_t *pxdoc1, pxhead_t *pxh1
 				double value;
 				if(0 < PX_get_data_double(pxdoc1, &data1[offset], pxf->px_flen, &value)) {
 					fprintf(outfp, "%g", value);
+				} else {
+					fprintf(outfp, "NULL");
+				}
+				first = 1;
+				break;
+			}
+			case pxfTimestamp: {
+				double value;
+				if(0 < PX_get_data_double(pxdoc1, &data1[offset], pxf->px_flen, &value)) {
+					char *str = PX_timestamp2string(pxdoc1, value, "Y-m-d H:i:s");
+					fprintf(outfp, "'%s'", str);
+					pxdoc1->free(pxdoc1, str);
 				} else {
 					fprintf(outfp, "NULL");
 				}
@@ -1062,7 +1118,6 @@ void show_sql_update(FILE *outfp, int pkeyindex, pxdoc_t *pxdoc1, pxhead_t *pxh1
 						break;
 					}
 					case pxfAutoInc:
-					case pxfTimestamp:
 					case pxfLong: {
 						long value;
 						if(0 < PX_get_data_long(pxdoc1, &data1[offset], pxf->px_flen, &value)) {
@@ -1088,6 +1143,18 @@ void show_sql_update(FILE *outfp, int pkeyindex, pxdoc_t *pxdoc1, pxhead_t *pxh1
 						double value;
 						if(0 < PX_get_data_double(pxdoc1, &data1[offset], pxf->px_flen, &value)) {
 							fprintf(outfp, "%g", value);
+						} else {
+							fprintf(outfp, "NULL");
+						}
+						first = 1;
+						break;
+					}
+					case pxfTimestamp: {
+						double value;
+						if(0 < PX_get_data_double(pxdoc1, &data1[offset], pxf->px_flen, &value)) {
+							char *str = PX_timestamp2string(pxdoc1, value, "Y-m-d H:i:s");
+							fprintf(outfp, "'%s'", str);
+							pxdoc1->free(pxdoc1, str);
 						} else {
 							fprintf(outfp, "NULL");
 						}
@@ -1261,7 +1328,6 @@ int show_record_diff(FILE *outfp, pxdoc_t *pxdoc1, pxhead_t *pxh1, char *data1, 
 					break;
 					}
 				case pxfAutoInc:
-				case pxfTimestamp:
 				case pxfLong: {
 					long value1, value2;
 					if((ret1 = PX_get_data_long(pxdoc1, &data1[offset1], pxf1[i].px_flen, &value1)) >= 0) {
@@ -1328,6 +1394,31 @@ int show_record_diff(FILE *outfp, pxdoc_t *pxdoc1, pxhead_t *pxh1, char *data1, 
 					} 
 					break;
 					} 
+				case pxfTimestamp: {
+					double value1, value2;
+					if((ret1 = PX_get_data_double(pxdoc1, &data1[offset1], pxf1[i].px_flen, &value1)) >= 0) {
+						if((ret2 = PX_get_data_double(pxdoc2, &data2[offset2], pxf2[j].px_flen, &value2)) >= 0) {
+							if((ret1 > 0) && (ret2 > 0) && (value1 != value2)) {
+								char *str1 = PX_timestamp2string(pxdoc1, value1, "Y-m-d H:i:s");
+								char *str2 = PX_timestamp2string(pxdoc2, value2, "Y-m-d H:i:s");
+								fprintf(outfp, "%s%c", pxf1[i].px_fname, delimiter);
+								fprintf(outfp, "%s%c%s\n", str1, delimiter, str2);
+								fccount++;
+							} else if((ret1 > 0) && (ret2 == 0)) {
+								char *str1 = PX_timestamp2string(pxdoc1, value1, "Y-m-d H:i:s");
+								fprintf(outfp, "%s%c", pxf1[i].px_fname, delimiter);
+								fprintf(outfp, "%s%cNULL\n", str1, delimiter);
+								fccount++;
+							} else if((ret1 == 0) && (ret2 > 0)) {
+								char *str2 = PX_timestamp2string(pxdoc2, value2, "Y-m-d H:i:s");
+								fprintf(outfp, "%s%c", pxf1[i].px_fname, delimiter);
+								fprintf(outfp, "NULL%c%s\n", delimiter, str2);
+								fccount++;
+							}
+						}
+					} 
+					break;
+					}
 				case pxfLogical: {
 					char value1, value2;
 					if((ret1 = PX_get_data_byte(pxdoc1, &data1[offset1], pxf1[i].px_flen, &value1)) >= 0) {
@@ -1378,7 +1469,7 @@ int show_record_diff(FILE *outfp, pxdoc_t *pxdoc1, pxhead_t *pxh1, char *data1, 
 /* errorhandler() {{{
  */
 void errorhandler(pxdoc_t *p, int error, const char *str, void *data) {
-	  fprintf(stderr, "pxdiff: PXLib: %s\n", str);
+	fprintf(stderr, "pxdiff: PXLib: %s\n", str);
 }
 /* }}} */
 
@@ -1478,6 +1569,7 @@ int main(int argc, char *argv[]) {
 	int outputplain = 0;
 	int outputsql = 0;
 	int outputstat = 0;
+	int outputhtmlgrid = 0;
 	int schemasdiffer = 0;
 	int comparecommon = 0;
 	int disregardcodepage = 0;
@@ -1560,6 +1652,8 @@ int main(int argc, char *argv[]) {
 					outputsql = 1;
 				} else if(!strcmp(optarg, "stat")) {
 					outputstat = 1;
+				} else if(!strcmp(optarg, "htmlgrid")) {
+					outputhtmlgrid = 1;
 				} else if(!strcmp(optarg, "debug")) {
 					outputdebug = 1;
 				}
@@ -1633,7 +1727,7 @@ int main(int argc, char *argv[]) {
 		compareschema = 1;
 
 	/* output in plain format is the default */
-	if(!outputplain && !outputsql && !outputstat && !outputdebug)
+	if(!outputplain && !outputsql && !outputstat && !outputhtmlgrid && !outputdebug)
 		outputplain = 1;
 
 	if(!inputfile1 || !inputfile2) {
@@ -1681,10 +1775,10 @@ int main(int argc, char *argv[]) {
 #ifdef HAVE_GSF
 	if(PX_has_gsf_support() && usegsf) {
 		GsfInput *input = NULL;
-		GsfInputStdio  *in_stdio;
+		GsfInputStdio *in_stdio;
 		GsfInputMemory *in_mem;
 		GError *gerr = NULL;
-		fprintf(stderr, "Inputfile:  %s\n", inputfile);
+		fprintf(stderr, "Inputfile: %s\n", inputfile);
 		gsf_init ();
 		in_mem = gsf_input_mmap_new (inputfile, NULL);
 		if (in_mem == NULL) {
@@ -2436,6 +2530,8 @@ int main(int argc, char *argv[]) {
 		while(i < pxh1->px_numrecords) {
 			if(outputplain)
 				show_plain_delete(outfp, pkeyindex1, pxdoc1, pxh1, records1[i], selectedfields1);
+			else if(outputsql)
+				show_sql_delete(outfp, pkeyindex1, pxdoc1, pxh1, records1[i], selectedfields1);
 			i++;
 			deletedrecs++;
 		}
@@ -2444,6 +2540,8 @@ int main(int argc, char *argv[]) {
 		while(j < pxh2->px_numrecords) {
 			if(outputplain)
 				show_plain_insert(outfp, pkeyindex2, pxdoc2, pxh2, records2[j], selectedfields2);
+			else if(outputsql)
+				show_sql_insert(outfp, pkeyindex2, pxdoc2, pxh2, records2[j], selectedfields2);
 			j++;
 			addedrecs++;
 		}
