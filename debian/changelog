@@ -1,3 +1,9 @@
+pxdiff (0.0.2-1) unstable; urgency=low
+
+  * New upstream version.
+
+ -- Uwe Steinmann <uwe@steinmann.cx>  Sat, 08 Nov 2003 06:50:31 +0100
+
 pxdiff (0.0.1-1) unstable; urgency=low
 
   * Initial Release.

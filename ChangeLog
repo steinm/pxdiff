@@ -1,2 +1,11 @@
+Version 0.0.2
+	- output those records at the end of one database which are not in the
+	  other database
+	- added option primary-key to set a primary key which is used to determine
+	  whether a record has been updated
+	- restrict comparision on selected fields
+	- do not compare records if schema differs
+	- man page is now much more accurate
+
 Version 0.0.1
 	- Initial release
