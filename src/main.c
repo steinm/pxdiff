@@ -447,7 +447,7 @@ void usage(char *progname) {
 	printf("\n");
 	printf(_("Copyright: Copyright (C) 2003 Uwe Steinmann <uwe@steinmann.cx>"));
 	printf("\n\n");
-	printf(_("%s Compares two paradox databases."), progname);
+	printf(_("%s compares two paradox databases."), progname);
 	printf("\n\n");
 	printf(_("Usage: %s [OPTIONS] FILE1 FILE2"), progname);
 	printf("\n\n");
