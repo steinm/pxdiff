@@ -63,9 +63,9 @@ else
 	PX_INCLUDEDIR=-I/usr/include 
 fi
 
-AC_CHECK_LIB(px, PX_get_record2,
+AC_CHECK_LIB(px, PX_timestamp2string,
   PX_LIBDIR="$PX_LIBDIR",
-  AC_MSG_ERROR([libpx not found. You will need at least libpx 0.1.0]),
+  AC_MSG_ERROR([libpx not found. You will need at least libpx 0.4.3]),
   "$PX_LIBDIR")
 
 PX_LIBS=-lpx
