@@ -1,3 +1,8 @@
+Version 0.0.3
+	- make field compare if records differ
+	- Different recordsize was not recognized
+	- several error msg has been made more understandable
+
 Version 0.0.2
 	- output those records at the end of one database which are not in the
 	  other database
