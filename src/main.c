@@ -230,7 +230,7 @@ void show_record(FILE *outfp, pxdoc_t *pxdoc, pxhead_t *pxh, char *data, int *se
 			switch(pxf->px_ftype) {
 				case pxfAlpha: {
 					char *value;
-					if(PX_get_data_alpha(pxdoc, &data[offset], pxf->px_flen, &value)) {
+					if(0 < PX_get_data_alpha(pxdoc, &data[offset], pxf->px_flen, &value)) {
 						if(enclosure && strchr(value, delimiter))
 							fprintf(outfp, "%c%s%c", enclosure, value, enclosure);
 						else
@@ -243,7 +243,7 @@ void show_record(FILE *outfp, pxdoc_t *pxdoc, pxhead_t *pxh, char *data, int *se
 				case pxfDate: {
 					long value;
 					int year, month, day;
-					if(PX_get_data_long(pxdoc, &data[offset], pxf->px_flen, &value)) {
+					if(0 < PX_get_data_long(pxdoc, &data[offset], pxf->px_flen, &value)) {
 						PX_SdnToGregorian(value+1721425, &year, &month, &day);
 						fprintf(outfp, "%02d.%02d.%04d", day, month, year);
 					}
@@ -252,7 +252,7 @@ void show_record(FILE *outfp, pxdoc_t *pxdoc, pxhead_t *pxh, char *data, int *se
 					}
 				case pxfShort: {
 					short int value;
-					if(PX_get_data_short(pxdoc, &data[offset], pxf->px_flen, &value)) {
+					if(0 < PX_get_data_short(pxdoc, &data[offset], pxf->px_flen, &value)) {
 						fprintf(outfp, "%d", value);
 					}
 					first = 1;
@@ -262,7 +262,7 @@ void show_record(FILE *outfp, pxdoc_t *pxdoc, pxhead_t *pxh, char *data, int *se
 				case pxfTimestamp:
 				case pxfLong: {
 					long value;
-					if(PX_get_data_long(pxdoc, &data[offset], pxf->px_flen, &value)) {
+					if(0 < PX_get_data_long(pxdoc, &data[offset], pxf->px_flen, &value)) {
 						fprintf(outfp, "%ld", value);
 					}
 					first = 1;
@@ -270,7 +270,7 @@ void show_record(FILE *outfp, pxdoc_t *pxdoc, pxhead_t *pxh, char *data, int *se
 					}
 				case pxfTime: {
 					long value;
-					if(PX_get_data_long(pxdoc, &data[offset], pxf->px_flen, &value)) {
+					if(0 < PX_get_data_long(pxdoc, &data[offset], pxf->px_flen, &value)) {
 						fprintf(outfp, "'%02d:%02d:%02.3f'", value/3600000, value/60000%60, value%60000/1000.0);
 					}
 					first = 1;
@@ -279,7 +279,7 @@ void show_record(FILE *outfp, pxdoc_t *pxdoc, pxhead_t *pxh, char *data, int *se
 				case pxfCurrency:
 				case pxfNumber: {
 					double value;
-					if(PX_get_data_double(pxdoc, &data[offset], pxf->px_flen, &value)) {
+					if(0 < PX_get_data_double(pxdoc, &data[offset], pxf->px_flen, &value)) {
 						fprintf(outfp, "%f", value);
 					} 
 					first = 1;
@@ -287,7 +287,7 @@ void show_record(FILE *outfp, pxdoc_t *pxdoc, pxhead_t *pxh, char *data, int *se
 					} 
 				case pxfLogical: {
 					char value;
-					if(PX_get_data_byte(pxdoc, &data[offset], pxf->px_flen, &value)) {
+					if(0 < PX_get_data_byte(pxdoc, &data[offset], pxf->px_flen, &value)) {
 						if(value)
 							fprintf(outfp, "1");
 						else
@@ -363,16 +363,23 @@ void show_record_diff(FILE *outfp, pxdoc_t *pxdoc1, pxhead_t *pxh1, char *data1,
 		 * in the table structure.
 		 */
 		if(!selectedfields1 || !selectedfields2 || ((selectedfields1[i] >= 0) && (selectedfields2[j] >= 0))) {
+			int ret1, ret2;
 //			fprintf(outfp, "Comparing '%s' which is of type %d\n", pxf1[i].px_fname, pxf1[i].px_ftype);
 			switch(pxf1[i].px_ftype) {
 				case pxfAlpha: {
 					char *value1, *value2;
-					if(PX_get_data_alpha(pxdoc1, &data1[offset1], pxf1[i].px_flen, &value1)) {
-						if(PX_get_data_alpha(pxdoc2, &data2[offset2], pxf2[j].px_flen, &value2)) {
-							if(strncmp(value1, value2, min(pxf1[i].px_flen, pxf2[j].px_flen))) {
+					if((ret1 = PX_get_data_alpha(pxdoc1, &data1[offset1], pxf1[i].px_flen, &value1)) >= 0) {
+						if((ret2 = PX_get_data_alpha(pxdoc2, &data2[offset2], pxf2[j].px_flen, &value2)) >= 0) {
+							if((ret1 > 0) && (ret2 > 0) && strncmp(value1, value2, min(pxf1[i].px_flen, pxf2[j].px_flen))) {
 								fprintf(outfp, "%s%c", pxf1[i].px_fname, delimiter);
 								fprintf(outfp, "'%s'%c", value1, delimiter);
 								fprintf(outfp, "'%s'\n", value2);
+							} else if((ret1 > 0) && (ret2 == 0)) {
+								fprintf(outfp, "%s%c", pxf1[i].px_fname, delimiter);
+								fprintf(outfp, "'%s'%cNULL\n", value1, delimiter);
+							} else if((ret2 > 0) && (ret1 == 0)) {
+								fprintf(outfp, "%s%c", pxf1[i].px_fname, delimiter);
+								fprintf(outfp, "NULL%c'%s'\n", delimiter, value2);
 							}
 							pxdoc1->free(pxdoc2, value2);
 						}
@@ -384,14 +391,24 @@ void show_record_diff(FILE *outfp, pxdoc_t *pxdoc1, pxhead_t *pxh1, char *data1,
 					long value1, value2;
 					int year1, month1, day1;
 					int year2, month2, day2;
-					if(PX_get_data_long(pxdoc1, &data1[offset1], pxf1[i].px_flen, &value1)) {
-						if(PX_get_data_long(pxdoc2, &data2[offset2], pxf2[j].px_flen, &value2)) {
+					if((ret1 = PX_get_data_long(pxdoc1, &data1[offset1], pxf1[i].px_flen, &value1)) >= 0) {
+						if((ret2 = PX_get_data_long(pxdoc2, &data2[offset2], pxf2[j].px_flen, &value2)) >= 0) {
 							if(value1 != value2) {
-								PX_SdnToGregorian(value1+1721425, &year1, &month1, &day1);
-								PX_SdnToGregorian(value2+1721425, &year2, &month2, &day2);
 								fprintf(outfp, "%s%c", pxf1[i].px_fname, delimiter);
-								fprintf(outfp, "%02d.%02d.%04d%c", day1, month1, year1, delimiter);
-								fprintf(outfp, "%02d.%02d.%04d\n", day2, month2, year2);
+								if(ret1) {
+									PX_SdnToGregorian(value1+1721425, &year1, &month1, &day1);
+									fprintf(outfp, "%02d.%02d.%04d", day1, month1, year1);
+								} else {
+									fprintf(outfp, "NULL");
+								}
+								fprintf(outfp, "%c", delimiter);
+								if(ret2) {
+									PX_SdnToGregorian(value2+1721425, &year2, &month2, &day2);
+									fprintf(outfp, "%02d.%02d.%04d", day2, month2, year2);
+								} else {
+									fprintf(outfp, "NULL");
+								}
+								fprintf(outfp, "\n");
 							}
 						}
 					}
@@ -399,12 +416,22 @@ void show_record_diff(FILE *outfp, pxdoc_t *pxdoc1, pxhead_t *pxh1, char *data1,
 					}
 				case pxfShort: {
 					short int value1, value2;
-					if(PX_get_data_short(pxdoc1, &data1[offset1], pxf1[i].px_flen, &value1)) {
-						if(PX_get_data_short(pxdoc2, &data2[offset2], pxf2[j].px_flen, &value2)) {
+					if((ret1 = PX_get_data_short(pxdoc1, &data1[offset1], pxf1[i].px_flen, &value1)) >= 0) {
+						if((ret2 = PX_get_data_short(pxdoc2, &data2[offset2], pxf2[j].px_flen, &value2)) >= 0) {
 							if(value1 != value2) {
 								fprintf(outfp, "%s%c", pxf1[i].px_fname, delimiter);
-								fprintf(outfp, "%d%c", value1, delimiter);
-								fprintf(outfp, "%d\n", value2);
+								if(ret1) {
+									fprintf(outfp, "%d", value1);
+								} else {
+									fprintf(outfp, "NULL");
+								}
+								fprintf(outfp, "%c", delimiter);
+								if(ret2) {
+									fprintf(outfp, "%d", value2);
+								} else {
+									fprintf(outfp, "NULL");
+								}
+								fprintf(outfp, "\n");
 							}
 						}
 					}
@@ -414,12 +441,22 @@ void show_record_diff(FILE *outfp, pxdoc_t *pxdoc1, pxhead_t *pxh1, char *data1,
 				case pxfTimestamp:
 				case pxfLong: {
 					long value1, value2;
-					if(PX_get_data_long(pxdoc1, &data1[offset1], pxf1[i].px_flen, &value1)) {
-						if(PX_get_data_long(pxdoc2, &data2[offset2], pxf2[j].px_flen, &value2)) {
+					if((ret1 = PX_get_data_long(pxdoc1, &data1[offset1], pxf1[i].px_flen, &value1)) >= 0) {
+						if((ret2 = PX_get_data_long(pxdoc2, &data2[offset2], pxf2[j].px_flen, &value2)) >= 0) {
 							if(value1 != value2) {
 								fprintf(outfp, "%s%c", pxf1[i].px_fname, delimiter);
-								fprintf(outfp, "%ld%c", value1, delimiter);
-								fprintf(outfp, "%ld\n", value2);
+								if(ret1) {
+									fprintf(outfp, "%ld", value1);
+								} else {
+									fprintf(outfp, "NULL");
+								}
+								fprintf(outfp, "%c", delimiter);
+								if(ret2) {
+									fprintf(outfp, "%ld", value2);
+								} else {
+									fprintf(outfp, "NULL");
+								}
+								fprintf(outfp, "\n");
 							}
 						}
 					}
@@ -427,12 +464,22 @@ void show_record_diff(FILE *outfp, pxdoc_t *pxdoc1, pxhead_t *pxh1, char *data1,
 					}
 				case pxfTime: {
 					long value1, value2;
-					if(PX_get_data_long(pxdoc1, &data1[offset1], pxf1[i].px_flen, &value1)) {
-						if(PX_get_data_long(pxdoc2, &data2[offset2], pxf2[j].px_flen, &value2)) {
+					if((ret1 = PX_get_data_long(pxdoc1, &data1[offset1], pxf1[i].px_flen, &value1)) >= 0) {
+						if((ret2 = PX_get_data_long(pxdoc2, &data2[offset2], pxf2[j].px_flen, &value2)) >= 0) {
 							if(value1 != value2) {
 								fprintf(outfp, "%s%c", pxf1[i].px_fname, delimiter);
-								fprintf(outfp, "'%02d:%02d:%02.3f'%c", value1/3600000, value1/60000%60, value1%60000/1000.0, delimiter);
-								fprintf(outfp, "'%02d:%02d:%02.3f'\n", value2/3600000, value2/60000%60, value2%60000/1000.0);
+								if(ret1) {
+									fprintf(outfp, "'%02d:%02d:%02.3f'", value1/3600000, value1/60000%60, value1%60000/1000.0);
+								} else {
+									fprintf(outfp, "NULL");
+								}
+								fprintf(outfp, "%c", delimiter);
+								if(ret2) {
+									fprintf(outfp, "'%02d:%02d:%02.3f'", value2/3600000, value2/60000%60, value2%60000/1000.0);
+								} else {
+									fprintf(outfp, "NULL");
+								}
+								fprintf(outfp, "\n");
 							}
 						}
 					}
@@ -441,12 +488,22 @@ void show_record_diff(FILE *outfp, pxdoc_t *pxdoc1, pxhead_t *pxh1, char *data1,
 				case pxfCurrency:
 				case pxfNumber: {
 					double value1, value2;
-					if(PX_get_data_double(pxdoc1, &data1[offset1], pxf1[i].px_flen, &value1)) {
-						if(PX_get_data_double(pxdoc2, &data2[offset2], pxf2[j].px_flen, &value2)) {
+					if((ret1 = PX_get_data_double(pxdoc1, &data1[offset1], pxf1[i].px_flen, &value1)) >= 0) {
+						if((ret2 = PX_get_data_double(pxdoc2, &data2[offset2], pxf2[j].px_flen, &value2)) >= 0) {
 							if(value1 != value2) {
 								fprintf(outfp, "%s%c", pxf1[i].px_fname, delimiter);
-								fprintf(outfp, "%f%c", value1, delimiter);
-								fprintf(outfp, "%f\n", value2);
+								if(ret1) {
+									fprintf(outfp, "%f", value1);
+								} else {
+									fprintf(outfp, "NULL");
+								}
+								fprintf(outfp, "%c", delimiter);
+								if(ret2) {
+									fprintf(outfp, "%f", value2);
+								} else {
+									fprintf(outfp, "NULL");
+								}
+								fprintf(outfp, "\n");
 							}
 						}
 					} 
@@ -458,14 +515,19 @@ void show_record_diff(FILE *outfp, pxdoc_t *pxdoc1, pxhead_t *pxh1, char *data1,
 						if(PX_get_data_byte(pxdoc2, &data2[offset2], pxf2[j].px_flen, &value2)) {
 							if(value1 != value2) {
 								fprintf(outfp, "%s%c", pxf1[i].px_fname, delimiter);
-								if(value1)
-									fprintf(outfp, "1%c", delimiter);
-								else
-									fprintf(outfp, "0%c", delimiter);
-								if(value2)
-									fprintf(outfp, "1\n");
-								else
-									fprintf(outfp, "0\n");
+								if(ret1) {
+									fprintf(outfp, "%d", value1);
+								} else {
+									fprintf(outfp, "NULL");
+								}
+								fprintf(outfp, "%c", delimiter);
+								if(ret2) {
+									fprintf(outfp, "%d", value2);
+								} else {
+									fprintf(outfp, "NULL");
+								}
+								fprintf(outfp, "\n");
+								fprintf(outfp, "%s%c", pxf1[i].px_fname, delimiter);
 							}
 						}
 					}
