@@ -75,6 +75,8 @@ manpage.1: manpage.sgml
       <arg><option>-k key | --primary-key=KEY <replaceable></replaceable></option></arg>
       <arg><option>-r ENCODING | --recode=ENCODING <replaceable></replaceable></option></arg>
       <arg><option>--fields=REGEX <replaceable></replaceable></option></arg>
+      <arg><option>--compare-common <replaceable></replaceable></option></arg>
+      <arg><option>--disregard-codepage <replaceable></replaceable></option></arg>
       <arg>FILE1 FILE2</arg>
 			<arg>PRI-INDEX1 PRI-INDEX2</arg>
     </cmdsynopsis>
@@ -228,6 +230,26 @@ manpage.1: manpage.sgml
 					 comparison on some fields to isolate certain differences.</para>
         </listitem>
       </varlistentry>
+      <varlistentry>
+        <term><option>--compare-common</option>
+        </term>
+        <listitem>
+          <para>Compare only those fields which are common to both databases.</para>
+        </listitem>
+      </varlistentry>
+      <varlistentry>
+        <term><option>--disregard-codepage</option>
+        </term>
+        <listitem>
+          <para>Usually a different code page will disable the comparision of
+					  records because it is considered a difference in the schema. This
+						behaviour is usefull if field data differs because of a different
+						code page. In case of databases without any character fields it is
+						save to compare the records even if the code page differs. This
+						option make sure that different code pages will not be treated as
+						different schemas.</para>
+        </listitem>
+      </varlistentry>
     </variablelist>
 
 		<para>The none optional parameters FILE1 and FILE2 are Paradox database
@@ -239,7 +261,7 @@ manpage.1: manpage.sgml
 
 		<para>&dhpackage; ist somehow similar to the diff(1) program. It uses
 		  the same algorithmn and has as similar output. Anyway, since comparing
-			databases and text files is very different, &dhpackage; takes a more
+			databases and text files is somewhat different, &dhpackage; takes a more
 			sophisticated approach to find differences, though the algorithmn is
 			much less optimized and needs more memory then an optimzed version
 			would use.</para>

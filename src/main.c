@@ -56,7 +56,8 @@ int sort(void **data, int len, int (datacmp)(void *data1, void *data2, size_t n)
 }
 /* }}} */
 
-/* qsort_comp_records()
+/* qsort_comp_records() {{{
+ * Function passed to qsort for comparing records.
  */
 int qsort_comp_records(const void *data1, const void *data2) {
 	void **d1 = (void **) data1;
@@ -589,7 +590,7 @@ void usage(char *progname) {
 	printf("\n");
 	printf(_("  -d, --data          compare data."));
 	printf("\n");
-	printf(_("  -t, --schema        compare schema."));
+	printf(_("  -t, --schema        compare schema (default)."));
 	printf("\n");
 	printf(_("  -s, --sort          sort data before calculating difference."));
 	printf("\n");
@@ -602,6 +603,10 @@ void usage(char *progname) {
 	printf(_("  -r, --recode=ENCODING sets the target encoding."));
 	printf("\n");
 	printf(_("  --fields=REGEX      extended regular expression to select fields."));
+	printf("\n");
+	printf(_("  --compare-common    compare only those fields common in both databases."));
+	printf("\n");
+	printf(_("  --disregard-codepage  different code pages will not prevent record\n                      comparision."));
 	printf("\n");
 #ifdef HAVE_GSF
 	if(PX_has_gsf_support()) {
@@ -652,6 +657,8 @@ int main(int argc, char *argv[]) {
 	int compareschema = 0;
 	int outputdebug = 0;
 	int schemasdiffer = 0;
+	int comparecommon = 0;
+	int disregardcodepage = 0;
 	int usegsf = 0;
 	int verbose = 0;
 	int sortdata = 0;
@@ -701,6 +708,8 @@ int main(int argc, char *argv[]) {
 			{"use-gsf", 0, 0, 8},
 			{"primary-key", 1, 0, 'k'},
 			{"version", 0, 0, 11},
+			{"compare-common", 0, 0, 12},
+			{"disregard-codepage", 0, 0, 13},
 			{0, 0, 0, 0}
 		};
 		c = getopt_long (argc, argv, "ivtdsf:r:o:k:h",
@@ -727,6 +736,12 @@ int main(int argc, char *argv[]) {
 			case 11:
 				fprintf(stdout, "%s\n", VERSION);
 				exit(0);
+				break;
+			case 12:
+				comparecommon = 1;
+				break;
+			case 13:
+				disregardcodepage = 1;
 				break;
 			case 'v':
 				verbose = 1;
@@ -998,7 +1013,7 @@ int main(int argc, char *argv[]) {
 			pxf++;
 		}
 		if(pkeylen1 == 0) {
-			fprintf(stderr, _("Primary key could not be found in first database."));
+			fprintf(stderr, _("Primary key could not be found in the first database."));
 			PX_close(pxdoc1);
 			PX_delete(pxdoc1);
 			PX_close(pxdoc2);
@@ -1006,7 +1021,7 @@ int main(int argc, char *argv[]) {
 			exit(1);
 		}
 		if(selectedfields1 && selectedfields1[i] < 0) {
-			fprintf(stderr, _("Primary key is not in list of selected fields of first file."));
+			fprintf(stderr, _("Primary key is not in list of selected fields of the first database."));
 			PX_close(pxdoc1);
 			PX_delete(pxdoc1);
 			PX_close(pxdoc2);
@@ -1032,7 +1047,7 @@ int main(int argc, char *argv[]) {
 			pxf++;
 		}
 		if(pkeylen2 == 0) {
-			fprintf(stderr, _("Primary key could not be found in second database."));
+			fprintf(stderr, _("Primary key could not be found in the second database."));
 			PX_close(pxdoc1);
 			PX_delete(pxdoc1);
 			PX_close(pxdoc2);
@@ -1040,7 +1055,7 @@ int main(int argc, char *argv[]) {
 			exit(1);
 		}
 		if(selectedfields2 && selectedfields2[i] < 0) {
-			fprintf(stderr, _("Primary key is not in list of selected fields of second file."));
+			fprintf(stderr, _("Primary key is not in list of selected fields of the second database."));
 			PX_close(pxdoc1);
 			PX_delete(pxdoc1);
 			PX_close(pxdoc2);
@@ -1062,52 +1077,68 @@ int main(int argc, char *argv[]) {
 	/* }}} */
 
 	/* Compare schema {{{
+	 * Even if the comparision is not explicitly requested by a program
+	 * option, we will need to compare the schema if --compare-common is
+	 * passed. In such a case the usual output of compare-schema will be
+	 * suppressed.
 	 */
-	if(compareschema) {
+	if(compareschema || comparecommon) {
 		int **l;
 		int i, j, k, len;
 		pxfield_t **lcs;
 		pxfield_t **fields1, **fields2;
 		int numfields1, numfields2;
+		int offset1, offset2;
 
-		if(pxh1->px_fileversion != pxh2->px_fileversion) {
-			fprintf(outfp, _("-File Version: %1.1f"), (float) pxh1->px_fileversion/10.0);
-			fprintf(outfp, "\n");
-			fprintf(outfp, _("+File Version: %1.1f"), (float) pxh2->px_fileversion/10.0);
-			fprintf(outfp, "\n");
-		}
-		if(pxh1->px_filetype != pxh2->px_filetype) {
-			fprintf(outfp, _("-File Type: %d"), pxh1->px_filetype);
-			fprintf(outfp, "\n");
-			fprintf(outfp, _("+File Type: %d"), pxh2->px_filetype);
-			fprintf(outfp, "\n");
-		}
-		if(strcmp(pxh1->px_tablename, pxh2->px_tablename)) {
-			fprintf(outfp, _("-Tablename: %s"), pxh1->px_tablename);
-			fprintf(outfp, "\n");
-			fprintf(outfp, _("+Tablename: %s"), pxh2->px_tablename);
-			fprintf(outfp, "\n");
-		}
-		if(pxh1->px_numrecords != pxh2->px_numrecords) {
-			fprintf(outfp, _("-Num. of Records: %d"), pxh1->px_numrecords);
-			fprintf(outfp, "\n");
-			fprintf(outfp, _("+Num. of Records: %d"), pxh2->px_numrecords);
-			fprintf(outfp, "\n");
+		if(compareschema) {
+			if(pxh1->px_fileversion != pxh2->px_fileversion) {
+				fprintf(outfp, _("-File Version: %1.1f"), (float) pxh1->px_fileversion/10.0);
+				fprintf(outfp, "\n");
+				fprintf(outfp, _("+File Version: %1.1f"), (float) pxh2->px_fileversion/10.0);
+				fprintf(outfp, "\n");
+			}
+			if(pxh1->px_filetype != pxh2->px_filetype) {
+				fprintf(outfp, _("-File Type: %d"), pxh1->px_filetype);
+				fprintf(outfp, "\n");
+				fprintf(outfp, _("+File Type: %d"), pxh2->px_filetype);
+				fprintf(outfp, "\n");
+			}
+			if(strcmp(pxh1->px_tablename, pxh2->px_tablename)) {
+				fprintf(outfp, _("-Tablename: %s"), pxh1->px_tablename);
+				fprintf(outfp, "\n");
+				fprintf(outfp, _("+Tablename: %s"), pxh2->px_tablename);
+				fprintf(outfp, "\n");
+			}
+			if(pxh1->px_numrecords != pxh2->px_numrecords) {
+				fprintf(outfp, _("-Num. of Records: %d"), pxh1->px_numrecords);
+				fprintf(outfp, "\n");
+				fprintf(outfp, _("+Num. of Records: %d"), pxh2->px_numrecords);
+				fprintf(outfp, "\n");
+			}
+			if(pxh1->px_numfields != pxh2->px_numfields) {
+				if(compareschema) {
+				fprintf(outfp, _("-Num. of Fields: %d"), pxh1->px_numfields);
+				fprintf(outfp, "\n");
+				fprintf(outfp, _("+Num. of Fields: %d"), pxh2->px_numfields);
+				fprintf(outfp, "\n");
+				}
+			}
+			if(pxh1->px_doscodepage != pxh2->px_doscodepage) {
+				if(compareschema) {
+				fprintf(outfp, _("-Code Page: %d"), pxh1->px_doscodepage);
+				fprintf(outfp, "\n");
+				fprintf(outfp, _("+Code Page: %d"), pxh2->px_doscodepage);
+				fprintf(outfp, "\n");
+				}
+			}
 		}
 		if(pxh1->px_numfields != pxh2->px_numfields) {
-			fprintf(outfp, _("-Num. of Fields: %d"), pxh1->px_numfields);
-			fprintf(outfp, "\n");
-			fprintf(outfp, _("+Num. of Fields: %d"), pxh2->px_numfields);
-			fprintf(outfp, "\n");
-			if(fieldregex == NULL)
+			if(fieldregex == NULL && comparecommon == 0)
 				schemasdiffer = 1;
 		}
 		if(pxh1->px_doscodepage != pxh2->px_doscodepage) {
-			fprintf(outfp, _("-Code Page: %d"), pxh1->px_doscodepage);
-			fprintf(outfp, "\n");
-			fprintf(outfp, _("+Code Page: %d"), pxh2->px_doscodepage);
-			fprintf(outfp, "\n");
-			schemasdiffer = 1;
+			if(!disregardcodepage)
+				schemasdiffer = 1;
 		}
 
 		pxf1 = pxh1->px_fields;
@@ -1202,24 +1233,98 @@ int main(int argc, char *argv[]) {
 		                (void **) fields2, numfields2,
 		                fieldcmp, 0, (void **) lcs);
 
+		/* If fields in common shall be compared, then selectedfields will
+		 * be reset now.
+		 */
+		if(comparecommon) {
+			/* allocate memory for selected field array if it was not
+			 * allocated already.
+			 */
+			if(NULL == selectedfields1) {
+				if((selectedfields1 = (int *) pxdoc1->malloc(pxdoc1, pxh1->px_numfields*sizeof(int), _("Allocate memory for array of selected fields."))) == NULL) {
+					PX_close(pxdoc1);
+					PX_delete(pxdoc1);
+					PX_close(pxdoc2);
+					PX_delete(pxdoc2);
+					exit(1);
+				}
+			}
+			if(NULL == selectedfields2) {
+				if((selectedfields2 = (int *) pxdoc2->malloc(pxdoc2, pxh2->px_numfields*sizeof(int), _("Allocate memory for array of selected fields."))) == NULL) {
+					PX_close(pxdoc1);
+					PX_delete(pxdoc1);
+					PX_close(pxdoc2);
+					PX_delete(pxdoc2);
+					exit(1);
+				}
+			}
+		}
+
 		/* Output the difference */
 		i = 0; j = 0; k = 0;
+		offset1 = offset2 = 0;
 		while(i < numfields1 && j < numfields2) {
 			if(fieldcmp(fields1[i], fields2[j], 0)) {
+				if(comparecommon) {
+					selectedfields1[i] = -1;
+					selectedfields2[j] = -1;
+					offset1 += fields1[i]->px_flen;
+					offset2 += fields2[j]->px_flen;
+				} else
+					schemasdiffer = 1;
+				/* k being >= len indicates that there are more fields
+				 * in database 1 than in the common sequence
+				 */
 				if(k >= len || fieldcmp(fields1[i], lcs[k], 0)) {
-					fprintf(outfp, "- ");
-					show_field(outfp, fields1[i++]);
+					if(compareschema) {
+						fprintf(outfp, "- ");
+						show_field(outfp, fields1[i]);
+					}
+					i++;
 				}
+				/* k being >= len indicates that there are more fields
+				 * in database 2 than in the common sequence
+				 */
 				if(k >= len || fieldcmp(fields2[j], lcs[k], 0)) {
-					fprintf(outfp, "+ ");
-					show_field(outfp, fields2[j++]);
+					if(compareschema) {
+						fprintf(outfp, "+ ");
+						show_field(outfp, fields2[j]);
+					}
+					j++;
 				}
-				schemasdiffer = 1;
 			} else {
-				fprintf(outfp, "= ");
-				show_field(outfp, fields2[j]);
+				if(comparecommon) {
+					selectedfields1[i] = offset1;
+					selectedfields2[j] = offset2;
+					offset1 += fields1[i]->px_flen;
+					offset2 += fields2[j]->px_flen;
+				}
+				if(compareschema) {
+					fprintf(outfp, "= ");
+					show_field(outfp, fields2[j]);
+				}
 				i++; j++; k++;
 			}
+		}
+
+		/* Output all remaining records in first database */
+		while(i < numfields1) {
+			if(comparecommon)
+				selectedfields1[i] = -1;
+			if(compareschema) {
+				fprintf(outfp, "- ");
+				show_field(outfp, fields1[i]);
+			}
+			i++;
+		}
+		while(j < numfields2) {
+			if(comparecommon)
+				selectedfields2[j] = -1;
+			if(compareschema) {
+				fprintf(outfp, "+ ");
+				show_field(outfp, fields2[j]);
+			}
+			j++;
 		}
 
 		for(i=0; i<pxh1->px_numfields+1; i++)
@@ -1239,7 +1344,7 @@ int main(int argc, char *argv[]) {
 		char *data1, *data2, *dataptr;
 		char **records1, **records2;
 		pxfield_t *pxf;
-		int recordsize, len, i, j, k;
+		int recordsize, comparelen, len, i, j, k;
 		int notinlcs1, notinlcs2;
 		int realrecsize1, realrecsize2; /* real record size of only selected fields */
 
@@ -1298,7 +1403,7 @@ int main(int argc, char *argv[]) {
 			int srcoffset;
 			if(NULL != PX_get_record(pxdoc1, j, dataptr)) {
 				records1[j] = dataptr;
-				if(fieldregex) {
+				if(fieldregex || comparecommon) {
 					realrecsize1 = 0;
 					srcoffset = 0;
 					pxf = pxh1->px_fields;
@@ -1325,7 +1430,7 @@ int main(int argc, char *argv[]) {
 			int srcoffset;
 			if(NULL != PX_get_record(pxdoc2, j, dataptr)) {
 				records2[j] = dataptr;
-				if(fieldregex) {
+				if(fieldregex || comparecommon) {
 					realrecsize2 = 0;
 					srcoffset = 0;
 					pxf = pxh2->px_fields;
@@ -1379,6 +1484,10 @@ int main(int argc, char *argv[]) {
 
 		/* Calculate the length of the common subsequence */
 		recordsize = realrecsize1;
+		if(pkey)
+			comparelen = pkeylen1;
+		else
+			comparelen = realrecsize1;
 		len = lcs_length(l, (void **) records1, pxh1->px_numrecords,
 		                    (void **) records2, pxh2->px_numrecords,
 		                    recordcmp, recordsize);

@@ -1,3 +1,9 @@
+Version 0.0.6
+	- fields at the end of database 1 and 2 are being taken into account
+	- new option --compare-common restricts comparision on those fields
+	  which are in both databases.
+	- new option --disregard-codepage
+
 Version 0.0.5
 	- added option --version
 	- records at the end of database 2 are being taken into account
