@@ -67,6 +67,7 @@ manpage.1: manpage.sgml
 
       <arg><option>-d | --data <replaceable></replaceable></option></arg>
       <arg><option>-t | --schema <replaceable></replaceable></option></arg>
+      <arg><option>-s | --sort <replaceable></replaceable></option></arg>
       <arg><option>-v | --verbose <replaceable></replaceable></option></arg>
       <arg><option>--mode=MODE <replaceable></replaceable></option></arg>
       <arg><option>-o FILE | --output-file=FILE <replaceable></replaceable></option></arg>
@@ -154,6 +155,19 @@ manpage.1: manpage.sgml
 						to compare two databases which have some fields in common but have
 						an overall different schema, you can specify the option --fields
 						to select just the fields in common.</para>
+        </listitem>
+      </varlistentry>
+      <varlistentry>
+        <term><option>-s</option>
+          <option>--sort</option>
+        </term>
+        <listitem>
+          <para>Sort both input files before calculating the difference. This
+					  option is useful if you would like to compare two database files
+						which have many records in common but not in the same order.
+						If a primary index field is given, the only this field is used
+						for sorting which is likely to accelerate sorting.
+						</para>
         </listitem>
       </varlistentry>
       <varlistentry>
