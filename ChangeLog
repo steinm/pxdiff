@@ -1,4 +1,6 @@
 Version 0.0.6
+	- many man page updates
+	- return exit code 1 if files differ, 2 if an error occured and 0 otherwise
 	- initial support for output-mode, plain, sql and stat is supported
 	- new option --show-record-diff which enables the output of differences
 	  within a record (only in plain output mode)
