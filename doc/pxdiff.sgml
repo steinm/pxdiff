@@ -57,7 +57,7 @@ manpage.1: manpage.sgml
   <refnamediv>
     <refname>&dhpackage;</refname>
 
-    <refpurpose>pxdiff reads two Paradox database files and calculates the difference</refpurpose>
+    <refpurpose>Reads two Paradox database files and calculates the difference</refpurpose>
   </refnamediv>
   <refsynopsisdiv>
     <cmdsynopsis>
@@ -65,18 +65,15 @@ manpage.1: manpage.sgml
 
       <arg><option>-h | --help <replaceable></replaceable></option></arg>
 
-      <arg><option>-i | --info <replaceable></replaceable></option></arg>
-      <arg><option>-c | --csv <replaceable></replaceable></option></arg>
-      <arg><option>-s | --sql <replaceable></replaceable></option></arg>
-      <arg><option>-x | --html <replaceable></replaceable></option></arg>
+      <arg><option>-d | --data <replaceable></replaceable></option></arg>
       <arg><option>-t | --schema <replaceable></replaceable></option></arg>
       <arg><option>-v | --verbose <replaceable></replaceable></option></arg>
       <arg><option>--mode=MODE <replaceable></replaceable></option></arg>
       <arg><option>-o FILE | --output-file=FILE <replaceable></replaceable></option></arg>
-      <arg><option>-n FILE | --primary-index-file=FILE <replaceable></replaceable></option></arg>
+      <arg><option>-k key | --primary-key=KEY <replaceable></replaceable></option></arg>
       <arg><option>-r ENCODING | --recode=ENCODING <replaceable></replaceable></option></arg>
       <arg><option>--fields=REGEX <replaceable></replaceable></option></arg>
-      <arg>FILE1 FILE2 </arg>
+      <arg>FILE1 FILE2 PRI-INDEX1 PRI-INDEX2 </arg>
     </cmdsynopsis>
   </refsynopsisdiv>
   <refsect1>
@@ -88,8 +85,15 @@ manpage.1: manpage.sgml
     <para>&dhpackage; reads two Paradox database files and calculates the
 		  difference. It can both find differences in the table structure
 			and the data records. Records are always treated as a single unit.
-			Differences within records will not be reported.
+			Differences within records on a field bases will not be reported.
       </para>
+		<para>Paradox database records are read as they are stored in the
+		  file. This could imply differences which result from a different
+			order of the records, though the database are identical. In such cases
+			you will have to use a primary index for both files and make sure
+			both databases are sortet equally.</para>
+		<para>A similar problem occurs when the two databases has the same fields
+		  but in different order. Such cases cannot be handled reasonably.</para>
   </refsect1>
   <refsect1>
     <title>OPTIONS</title>
@@ -125,22 +129,26 @@ manpage.1: manpage.sgml
         </listitem>
       </varlistentry>
       <varlistentry>
-        <term><option>-i</option>
-          <option>--info</option>
-        </term>
-        <listitem>
-          <para>Show information about Paradox file. If no other output format
-					 is specified this will be the default.</para>
-        </listitem>
-      </varlistentry>
-      <varlistentry>
         <term><option>-t</option>
           <option>--schema</option>
         </term>
         <listitem>
-          <para>Dump schema of database as it would be created by the official
-					 Paradox software, when a database is exported in CSV format. This
-					 option is the short form for --mode=schema.</para>
+          <para>Compare schema and output the difference. Schema comparision
+					  will also take place if you only pass --data, but schema difference
+						will not be displayed.</para>
+        </listitem>
+      </varlistentry>
+      <varlistentry>
+        <term><option>-d</option>
+          <option>--data</option>
+        </term>
+        <listitem>
+          <para>Compare data and output the difference. Comparing data also
+					  implies to compare the schema first. If the schema does not match
+						the data comparision will be not be executed. If you would like
+						to compare two databases which have some fields in common but have
+						an overall different schema, you can specify the option --fields
+						to select just the fields in common.</para>
         </listitem>
       </varlistentry>
       <varlistentry>
@@ -154,40 +162,12 @@ manpage.1: manpage.sgml
         </listitem>
       </varlistentry>
       <varlistentry>
-        <term><option>-c</option>
-          <option>--csv</option>
-        </term>
-        <listitem>
-          <para>Dump data records in CSV format. This
-						option is the short form for --mode=csv.</para>
-        </listitem>
-      </varlistentry>
-      <varlistentry>
-        <term><option>-s</option>
-          <option>--sql</option>
-        </term>
-        <listitem>
-          <para>Dump data records in SQL format. This
-						option is the short form for --mode=sql.</para>
-        </listitem>
-      </varlistentry>
-      <varlistentry>
-        <term><option>-x</option>
-          <option>--html</option>
-        </term>
-        <listitem>
-          <para>Dump data records in HTML table format. This
-						option is the short form for --mode=html.</para>
-        </listitem>
-      </varlistentry>
-      <varlistentry>
         <term><option>--mode=MODE</option>
         </term>
         <listitem>
-          <para>Sets the ouput mode. This options provides a different way
-					 to set the output format. --mode=sql is equivalent to --sql,
-					 --mode=csv to --csv, --mode=html to --html and --mode=schema
-					 to --schema.</para>
+          <para>Sets the compare mode. This options provides a different way
+					 to set what shall be compared. --mode=data is equivalent to --data,
+					 and --mode=schema to --schema.</para>
         </listitem>
       </varlistentry>
       <varlistentry>
@@ -195,7 +175,7 @@ manpage.1: manpage.sgml
           <option>--output=FILE</option>
         </term>
         <listitem>
-          <para>Dump records into given file instead of stdout.</para>
+          <para>Write difference into given file instead of stdout.</para>
         </listitem>
       </varlistentry>
       <varlistentry>
@@ -224,16 +204,60 @@ manpage.1: manpage.sgml
         </term>
         <listitem>
           <para>This option allows to select certain fields by specifying
-					 an extended regular expression. It will only effect the csv, html
-					 and sql output. "field1|field23$" will select all fields whose name
+					 an extended regular expression.
+					 "field1|field23$" will select all fields whose name
 					 contains "field1" or end in "field23". If this option is not used
-					 als fields will be shown. The field name is case insensitive.</para>
+					 als fields will be compared. The field name is case insensitive.
+					 It is very useful if you would like to compare two database which
+					 has different schema but some fields in common or to restricted the
+					 comparision on some fields to isolate certain differences.</para>
         </listitem>
       </varlistentry>
     </variablelist>
 
 		<para>The none optional parameters FILE1 and FILE2 are Paradox database
 	 	 files which shall be compared.</para>
+  </refsect1>
+  <refsect1>
+    <title>HOW DIFFERENCE ARE FOUND</title>
+
+		<para>&dhpackage; ist somehow similar to the diff(1) program. It uses
+		  the same algorithmn and has as similar output. Anyway, since comparing
+			databases and text files is very different, &dhpackage; takes a more
+			sophisticated approach to find differences.</para>
+		<para>First of all, databases have a structure and records. Both must be
+		  compared. If the structure does not match it makes no sense to compare
+			the records. Secondly, databases should be considered equal, if both
+			databases contain the same records, disregarding its location in the
+			file. Third,
+			different records can be interpreted in two ways. They differ because
+			they have nothing in common and just happen do be at the same position
+			or they differ in some fields but are basically the same record which
+			has been updated. In the second case there is likely to be a primary
+			key to match the two records.</para>
+		<para>&dhpackage; tries to be as smart as possible, but it will not be
+		  succesful without some help. If you compare two databases make sure
+			to sort them by the same field, preferred by a unique field or the
+			primary key. Usually one will have to pass the primary index files
+			for both database. Sorted databases can easily be synchronised,
+			even if many
+			records has been delete or added. If there is a primary key, then
+			specify its name with the --primary-key option. A primary key can be
+			used to tell if a record has been updated or if its new or deleted.
+			In the output the two records will be marked with '&lt;' and '&gt;'
+			instead of '+' and '-'. A '&lt;' means that this record in the first
+			database will be replaced by the record in the next line, which has
+			a leading '&gt;'.
+			</para>
+		<para>Sometimes, one is not interessted in comparing a complete record but
+		  only in some selected fields; especially if databases have different
+			structure. The option --fields can be used to pass a regular expression
+			to match the field names. Anyway, this may fail if the selected fields
+			are not in the same order. There is currently no way to reorder the
+			fields, all you can do is comparing field sets which are in the same
+			sequence in both databases.</para>
+		<para>If --primary-key and --fields is used at the same time, then the
+		  primary key must be in the specified field set.</para>
   </refsect1>
   <refsect1>
     <title>SEE ALSO</title>
