@@ -7,12 +7,19 @@
 #include <sys/types.h>
 #include <regex.h>
 #include <libgen.h>
-#include <paradox.h>
 #include "config.h"
 
 #define _(String) gettext(String)
 #define max(a,b) ((a)>(b) ? (a) : (b))
 #define min(a,b) ((a)<(b) ? (a) : (b))
+
+#define MEMORY_DEBUGGING 1
+
+#ifdef MEMORY_DEBUGGING
+#include <paradox-mp.h>
+#else
+#include <paradox.h>
+#endif
 
 /* strrep() {{{
  * Replace occurences of character c1 by c2.
@@ -220,6 +227,7 @@ void show_record(FILE *outfp, pxdoc_t *pxdoc, pxhead_t *pxh, char *data, int *se
 							fprintf(outfp, "%c%s%c", enclosure, value, enclosure);
 						else
 							fprintf(outfp, "%s", value);
+						pxdoc->free(pxdoc, value);
 					}
 					first = 1;
 					break;
@@ -358,7 +366,9 @@ void show_record_diff(FILE *outfp, pxdoc_t *pxdoc1, pxhead_t *pxh1, char *data1,
 								fprintf(outfp, "'%s'%c", value1, delimiter);
 								fprintf(outfp, "'%s'\n", value2);
 							}
+							pxdoc1->free(pxdoc2, value2);
 						}
+						pxdoc2->free(pxdoc1, value1);
 					}
 					break;
 				}
@@ -482,7 +492,7 @@ void show_record_diff(FILE *outfp, pxdoc_t *pxdoc1, pxhead_t *pxh1, char *data1,
 /* errorhandler() {{{
  */
 void errorhandler(pxdoc_t *p, int error, const char *str, void *data) {
-	  fprintf(stderr, "pxdif: PXLib: %s\n", str);
+	  fprintf(stderr, "pxdiff: PXLib: %s\n", str);
 }
 /* }}} */
 
@@ -583,6 +593,10 @@ int main(int argc, char *argv[]) {
 	char *fieldregex = NULL;
 	char *targetencoding = NULL;
 	FILE *outfp = NULL;
+
+#ifdef MEMORY_DEBUGGING
+	PX_mp_init();
+#endif
 
 #ifdef ENABLE_NLS
 	setlocale (LC_ALL, "");
@@ -700,13 +714,21 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
+#ifdef MEMORY_DEBUGGING
+	if(NULL == (pxdoc1 = PX_new2(errorhandler, PX_mp_malloc, PX_mp_realloc, PX_mp_free))) {
+#else
 	if(NULL == (pxdoc1 = PX_new2(errorhandler, NULL, NULL, NULL))) {
+#endif
 		fprintf(stderr, _("Could not create new paradox instance."));
 		fprintf(stderr, "\n");
 		exit(1);
 	}
 
+#ifdef MEMORY_DEBUGGING
+	if(NULL == (pxdoc2 = PX_new2(errorhandler, PX_mp_malloc, PX_mp_realloc, PX_mp_free))) {
+#else
 	if(NULL == (pxdoc2 = PX_new2(errorhandler, NULL, NULL, NULL))) {
+#endif
 		fprintf(stderr, _("Could not create new paradox instance."));
 		fprintf(stderr, "\n");
 		exit(1);
@@ -811,18 +833,24 @@ int main(int argc, char *argv[]) {
 		if(regcomp(&preg, fieldregex, REG_NOSUB|REG_EXTENDED|REG_ICASE)) {
 			fprintf(stderr, _("Could not compile regular expression to select fields."));
 			PX_close(pxdoc1);
+			PX_delete(pxdoc1);
 			PX_close(pxdoc2);
+			PX_delete(pxdoc2);
 			exit(1);
 		}
 		/* allocate memory for selected field array */
-		if((selectedfields1 = (int *) pxdoc1->malloc(pxdoc1, pxh1->px_numfields*sizeof(int), _("Could not allocate memory for array of selected fields."))) == NULL) {
+		if((selectedfields1 = (int *) pxdoc1->malloc(pxdoc1, pxh1->px_numfields*sizeof(int), _("Allocate memory for array of selected fields."))) == NULL) {
 			PX_close(pxdoc1);
+			PX_delete(pxdoc1);
 			PX_close(pxdoc2);
+			PX_delete(pxdoc2);
 			exit(1);
 		}
-		if((selectedfields2 = (int *) pxdoc2->malloc(pxdoc2, pxh2->px_numfields*sizeof(int), _("Could not allocate memory for array of selected fields."))) == NULL) {
+		if((selectedfields2 = (int *) pxdoc2->malloc(pxdoc2, pxh2->px_numfields*sizeof(int), _("Allocate memory for array of selected fields."))) == NULL) {
 			PX_close(pxdoc1);
+			PX_delete(pxdoc1);
 			PX_close(pxdoc2);
+			PX_delete(pxdoc2);
 			exit(1);
 		}
 
@@ -888,13 +916,17 @@ int main(int argc, char *argv[]) {
 		if(pkeylen1 == 0) {
 			fprintf(stderr, _("Primary key could not be found in first database."));
 			PX_close(pxdoc1);
+			PX_delete(pxdoc1);
 			PX_close(pxdoc2);
+			PX_delete(pxdoc2);
 			exit(1);
 		}
 		if(selectedfields1 && selectedfields1[i] < 0) {
 			fprintf(stderr, _("Primary key is not in list of selected fields of first file."));
 			PX_close(pxdoc1);
+			PX_delete(pxdoc1);
 			PX_close(pxdoc2);
+			PX_delete(pxdoc2);
 			exit(1);
 		}
 
@@ -918,13 +950,17 @@ int main(int argc, char *argv[]) {
 		if(pkeylen2 == 0) {
 			fprintf(stderr, _("Primary key could not be found in second database."));
 			PX_close(pxdoc1);
+			PX_delete(pxdoc1);
 			PX_close(pxdoc2);
+			PX_delete(pxdoc2);
 			exit(1);
 		}
 		if(selectedfields2 && selectedfields2[i] < 0) {
 			fprintf(stderr, _("Primary key is not in list of selected fields of second file."));
 			PX_close(pxdoc1);
+			PX_delete(pxdoc1);
 			PX_close(pxdoc2);
+			PX_delete(pxdoc2);
 			exit(1);
 		}
 
@@ -932,7 +968,9 @@ int main(int argc, char *argv[]) {
 		if(pkeylen1 != pkeylen2) {
 			fprintf(stderr, _("Primary keys have different length in databases."));
 			PX_close(pxdoc1);
+			PX_delete(pxdoc1);
 			PX_close(pxdoc2);
+			PX_delete(pxdoc2);
 			exit(1);
 		}
 		fprintf(outfp, "primary key: %s: %d %d: %d %d\n", pkey, pkeystart1, pkeylen1, pkeystart2, pkeylen2);
@@ -993,27 +1031,33 @@ int main(int argc, char *argv[]) {
 
 		/* Allocate memory for lcs matrix: n strings of length m
 		 * Could be smaller if field selection was taken into account */
-		if((l = (int **) pxdoc1->malloc(pxdoc1, (pxh1->px_numfields+1)*sizeof(int *), _("Could not allocate memory lcs array."))) == NULL) {
+		if((l = (int **) pxdoc1->malloc(pxdoc1, (pxh1->px_numfields+1)*sizeof(int *), _("Allocate memory for lcs array."))) == NULL) {
 			PX_close(pxdoc1);
+			PX_delete(pxdoc1);
 			PX_close(pxdoc2);
+			PX_delete(pxdoc2);
 			exit(1);
 		}
 		for(i=0; i<pxh1->px_numfields+1; i++) {
-			if((l[i] = (int *) pxdoc1->malloc(pxdoc1, (pxh2->px_numfields+1) * sizeof(int), _("Could not allocate memory lcs array."))) == NULL) {
+			if((l[i] = (int *) pxdoc1->malloc(pxdoc1, (pxh2->px_numfields+1) * sizeof(int), _("Allocate memory for lines in lcs array."))) == NULL) {
 				PX_close(pxdoc1);
+				PX_delete(pxdoc1);
 				PX_close(pxdoc2);
+				PX_delete(pxdoc2);
 				exit(1);
 			}
 		}
 
 		/* Create an array of pxfield_t pointers for the first file,
 		 * because lcs_length needs it. */
-		if((fields1 = (pxfield_t **) pxdoc1->malloc(pxdoc1, (pxh1->px_numfields)*sizeof(pxfield_t *), _("Could not allocate memory for array of field pointers."))) == NULL) {
+		if((fields1 = (pxfield_t **) pxdoc1->malloc(pxdoc1, (pxh1->px_numfields)*sizeof(pxfield_t *), _("Allocate memory for array of field pointers."))) == NULL) {
 			for(i=0; i<pxh1->px_numfields+1; i++)
-				px_free(pxdoc1, l[i]);
-			px_free(pxdoc1, l);
+				pxdoc1->free(pxdoc1, l[i]);
+			pxdoc1->free(pxdoc1, l);
 			PX_close(pxdoc1);
+			PX_delete(pxdoc1);
 			PX_close(pxdoc2);
+			PX_delete(pxdoc2);
 			exit(1);
 		}
 		numfields1 = 0;
@@ -1024,13 +1068,15 @@ int main(int argc, char *argv[]) {
 		}
 		/* Create an array of pxfield_t pointers for the second file,
 		 * because lcs_length needs it. */
-		if((fields2 = (pxfield_t **) pxdoc2->malloc(pxdoc2, (pxh2->px_numfields)*sizeof(pxfield_t *), _("Could not allocate memory for array of field pointers."))) == NULL) {
+		if((fields2 = (pxfield_t **) pxdoc2->malloc(pxdoc2, (pxh2->px_numfields)*sizeof(pxfield_t *), _("Allocate memory for array of field pointers."))) == NULL) {
 			for(i=0; i<pxh1->px_numfields+1; i++)
-				px_free(pxdoc1, l[i]);
-			px_free(pxdoc1, l);
-			px_free(pxdoc1, fields1);
+				pxdoc1->free(pxdoc1, l[i]);
+			pxdoc1->free(pxdoc1, l);
+			pxdoc1->free(pxdoc1, fields1);
 			PX_close(pxdoc1);
+			PX_delete(pxdoc1);
 			PX_close(pxdoc2);
+			PX_delete(pxdoc2);
 			exit(1);
 		}
 		numfields2 = 0;
@@ -1052,15 +1098,20 @@ int main(int argc, char *argv[]) {
 		lcs_output_matrix(l, numfields1, numfields2);
 		*/
 
-		/* get the sequence */
-		if((lcs = (pxfield_t **) pxdoc1->malloc(pxdoc1, len * sizeof(pxfield_t *), _("Could not allocate memory lcs array."))) == NULL) {
+		/* get the sequence. lcs will be an array of pointers pointing to
+		 * the specifications of fields which are in both database.
+		 * The pointer is actually pointing to specification of the first
+		 * database. */
+		if((lcs = (pxfield_t **) pxdoc1->malloc(pxdoc1, len * sizeof(pxfield_t *), _("Allocate memory for lcs array."))) == NULL) {
 			for(i=0; i<pxh1->px_numfields+1; i++)
-				px_free(pxdoc1, l[i]);
-			px_free(pxdoc1, l);
-			px_free(pxdoc1, fields1);
-			px_free(pxdoc2, fields2);
+				pxdoc1->free(pxdoc1, l[i]);
+			pxdoc1->free(pxdoc1, l);
+			pxdoc1->free(pxdoc1, fields1);
+			pxdoc2->free(pxdoc2, fields2);
 			PX_close(pxdoc1);
+			PX_delete(pxdoc1);
 			PX_close(pxdoc2);
+			PX_delete(pxdoc2);
 			exit(1);
 		}
 		lcs_sequence(l, (void **) fields1, numfields1,
@@ -1088,10 +1139,11 @@ int main(int argc, char *argv[]) {
 		}
 
 		for(i=0; i<pxh1->px_numfields+1; i++)
-			px_free(pxdoc1, l[i]);
-		px_free(pxdoc1, l);
-		px_free(pxdoc1, fields1);
-		px_free(pxdoc2, fields2);
+			pxdoc1->free(pxdoc1, l[i]);
+		pxdoc1->free(pxdoc1, l);
+		pxdoc1->free(pxdoc1, lcs);
+		pxdoc1->free(pxdoc1, fields1);
+		pxdoc2->free(pxdoc2, fields2);
 	}
 	/* }}} */
 
@@ -1100,92 +1152,113 @@ int main(int argc, char *argv[]) {
 	if(comparedata && !schemasdiffer) {
 		int **l;
 		char **lcs;
-		char *data1, *data2;
+		char *data1, *data2, *dataptr;
 		char **records1, **records2;
 		pxfield_t *pxf;
 		int recordsize, len, i, j, k;
 		int realrecsize1, realrecsize2; /* real record size of only selected fields */
 
-		if((l = (int **) pxdoc1->malloc(pxdoc1, (pxh1->px_numrecords+1)*sizeof(char *), _("Could not allocate memory for lcs array."))) == NULL) {
+		if((l = (int **) pxdoc1->malloc(pxdoc1, (pxh1->px_numrecords+1)*sizeof(int *), _("Allocate memory for lcs array."))) == NULL) {
 			PX_close(pxdoc1);
+			PX_delete(pxdoc1);
+			PX_close(pxdoc2);
+			PX_delete(pxdoc2);
 			exit(1);
 		}
 		for(i=0; i<pxh1->px_numrecords+1; i++) {
-			if((l[i] = (int *) pxdoc2->malloc(pxdoc2, (pxh2->px_numrecords+1) * sizeof(int), _("Could not allocate memory for lcs array."))) == NULL) {
+			if((l[i] = (int *) pxdoc2->malloc(pxdoc2, (pxh2->px_numrecords+1) * sizeof(int), _("Allocate memory for lines in lcs array."))) == NULL) {
 				PX_close(pxdoc1);
+				PX_delete(pxdoc1);
 				PX_close(pxdoc2);
+				PX_delete(pxdoc2);
 				exit(1);
 			}
 		}
-		if((data1 = (char *) pxdoc1->malloc(pxdoc1, pxh1->px_recordsize * pxh1->px_numrecords, _("Could not allocate memory for record."))) == NULL) {
+		if((data1 = (char *) pxdoc1->malloc(pxdoc1, pxh1->px_recordsize * pxh1->px_numrecords, _("Allocate memory for record."))) == NULL) {
 			PX_close(pxdoc1);
-			exit(1);
-		}
-		if((records1 = (char **) pxdoc1->malloc(pxdoc1, pxh1->px_numrecords * sizeof(char *), _("Could not allocate memory for record."))) == NULL) {
-			PX_close(pxdoc1);
-			exit(1);
-		}
-		if((data2 = (char *) pxdoc2->malloc(pxdoc2, pxh2->px_recordsize * pxh2->px_numrecords, _("Could not allocate memory for record."))) == NULL) {
-			PX_close(pxdoc1);
+			PX_delete(pxdoc1);
 			PX_close(pxdoc2);
+			PX_delete(pxdoc2);
 			exit(1);
 		}
-		if((records2 = (char **) pxdoc2->malloc(pxdoc2, pxh2->px_numrecords * sizeof(char *), _("Could not allocate memory for record."))) == NULL) {
+		if((records1 = (char **) pxdoc1->malloc(pxdoc1, pxh1->px_numrecords * sizeof(char *), _("Allocate memory for array of records."))) == NULL) {
 			PX_close(pxdoc1);
+			PX_delete(pxdoc1);
 			PX_close(pxdoc2);
+			PX_delete(pxdoc2);
+			exit(1);
+		}
+		if((data2 = (char *) pxdoc2->malloc(pxdoc2, pxh2->px_recordsize * pxh2->px_numrecords, _("Allocate memory for record."))) == NULL) {
+			PX_close(pxdoc1);
+			PX_delete(pxdoc1);
+			PX_close(pxdoc2);
+			PX_delete(pxdoc2);
+			exit(1);
+		}
+		if((records2 = (char **) pxdoc2->malloc(pxdoc2, pxh2->px_numrecords * sizeof(char *), _("Allocate memory for array of records."))) == NULL) {
+			PX_close(pxdoc1);
+			PX_delete(pxdoc1);
+			PX_close(pxdoc2);
+			PX_delete(pxdoc2);
 			exit(1);
 		}
 
-		/* Get all records of first database */
+		/* Get all records of first database. records1 will contain pointers
+		 * to all records. If fields are selected they will be copied to the
+		 * beginning of the record one after the other realrecsize1 will
+		 * contain the sum the lenght of all selected fields.
+		 */
+		dataptr = data1;
 		for(j=0; j<pxh1->px_numrecords; j++) {
 			int srcoffset;
-			if(NULL != PX_get_record(pxdoc1, j, data1)) {
-				records1[j] = data1;
+			if(NULL != PX_get_record(pxdoc1, j, dataptr)) {
+				records1[j] = dataptr;
 				if(fieldregex) {
 					realrecsize1 = 0;
 					srcoffset = 0;
 					pxf = pxh1->px_fields;
 					for(i=0; i<pxh1->px_numfields; i++) {
 						if(selectedfields1[i] >= 0) {
-							memcpy(&data1[realrecsize1], &data1[srcoffset], pxf[i].px_flen);
+							memcpy(&dataptr[realrecsize1], &dataptr[srcoffset], pxf[i].px_flen);
 							realrecsize1 += pxf[i].px_flen;
 						}
 						srcoffset += pxf[i].px_flen;
 					} 
-					memset(&data1[realrecsize1], 0, srcoffset-realrecsize1);
+					memset(&dataptr[realrecsize1], 0, srcoffset-realrecsize1);
 				} else {
 					realrecsize1 = pxh1->px_recordsize;
 				}
 			} else {
 				fprintf(stderr, _("Could not get record number %d\n"), j);
 			}
-			data1 += pxh1->px_recordsize;
+			dataptr += pxh1->px_recordsize;
 		}
 
-		/* Get all records of second database */
+		/* Get all records of second database. Do the same as above. */
+		dataptr = data2;
 		for(j=0; j<pxh2->px_numrecords; j++) {
 			int srcoffset;
-			if(NULL != PX_get_record(pxdoc2, j, data2)) {
-				records2[j] = data2;
+			if(NULL != PX_get_record(pxdoc2, j, dataptr)) {
+				records2[j] = dataptr;
 				if(fieldregex) {
 					realrecsize2 = 0;
 					srcoffset = 0;
 					pxf = pxh2->px_fields;
 					for(i=0; i<pxh2->px_numfields; i++) {
 						if(selectedfields2[i] >= 0) {
-							memcpy(&data2[realrecsize2], &data2[srcoffset], pxf[i].px_flen);
+							memcpy(&dataptr[realrecsize2], &dataptr[srcoffset], pxf[i].px_flen);
 							realrecsize2 += pxf[i].px_flen;
 						}
 						srcoffset += pxf[i].px_flen;
 					} /* FIXME */
-					memset(&data2[realrecsize2], 0, srcoffset-realrecsize2);
+					memset(&dataptr[realrecsize2], 0, srcoffset-realrecsize2);
 				} else {
 					realrecsize2 = pxh2->px_recordsize;
 				}
 			} else {
 				fprintf(stderr, _("Could not get record number %d\n"), j);
 			}
-			data2 += pxh2->px_recordsize;
+			dataptr += pxh2->px_recordsize;
 		}
 
 //		for(j=0; j<pxh1->px_numrecords; j++) {
@@ -1196,12 +1269,17 @@ int main(int argc, char *argv[]) {
 		if(realrecsize1 != realrecsize2) {
 			fprintf(outfp, "Record size differs: %d != %d", realrecsize1, realrecsize2);
 			fprintf(outfp, "\n");
-			px_free(pxdoc1, data1);
-			px_free(pxdoc1, records1);
-			px_free(pxdoc2, data2);
-			px_free(pxdoc2, records2);
+			for(i=0; i<pxh1->px_numfields+1; i++)
+				pxdoc1->free(pxdoc1, l[i]);
+			pxdoc1->free(pxdoc1, lcs);
+			pxdoc1->free(pxdoc1, data1);
+			pxdoc1->free(pxdoc1, records1);
+			pxdoc2->free(pxdoc2, data2);
+			pxdoc2->free(pxdoc2, records2);
 			PX_close(pxdoc1);
+			PX_delete(pxdoc1);
 			PX_close(pxdoc2);
+			PX_delete(pxdoc2);
 			exit(1);
 		}
 
@@ -1216,10 +1294,14 @@ int main(int argc, char *argv[]) {
 		fprintf(outfp, "Longest common sequence has lenght %d", len);
 		fprintf(outfp, "\n");
 
-		/* get the sequence */
-		if((lcs = (char **) pxdoc1->malloc(pxdoc1, len * sizeof(char *), _("Could not allocate memory for lcs array."))) == NULL) {
+		/* get the sequence of all common records. lcs contains the pointers
+		 * to common records. The pointer is actually pointing to the record
+		 * in the first database. */
+		if((lcs = (char **) pxdoc1->malloc(pxdoc1, len * sizeof(char *), _("Allocate memory for lcs array."))) == NULL) {
 			PX_close(pxdoc1);
+			PX_delete(pxdoc1);
 			PX_close(pxdoc2);
+			PX_delete(pxdoc2);
 			exit(1);
 		}
 		lcs_sequence(l, (void **) records1, pxh1->px_numrecords,
@@ -1238,6 +1320,13 @@ int main(int argc, char *argv[]) {
 			notinlcs1 = 0;
 			notinlcs2 = 0;
 			if(recordcmp(records1[i], records2[j], recordsize)) {
+				/* We could compare just pointers in case of records1 because
+				 * lcs contains the pointers to the records in records1. I'm
+				 * not sure if there are any site effects if records1 contains
+				 * several identical records which still would have different
+				 * pointers. Speed wise its not that much of a difference.
+				 */
+//				if(k >= len || records1[i] != lcs[k]) {
 				if(k >= len || recordcmp(records1[i], lcs[k], recordsize)) {
 					notinlcs1 = 1;
 				}
@@ -1287,10 +1376,14 @@ int main(int argc, char *argv[]) {
 			show_record(outfp, pxdoc2, pxh2, records2[i++], selectedfields2);
 		}
 
-		px_free(pxdoc1, data1);
-		px_free(pxdoc1, records1);
-		px_free(pxdoc2, data2);
-		px_free(pxdoc2, records2);
+		for(i=0; i<pxh1->px_numrecords+1; i++)
+			pxdoc1->free(pxdoc1, l[i]);
+		pxdoc1->free(pxdoc1, l);
+		pxdoc1->free(pxdoc1, lcs);
+		pxdoc1->free(pxdoc1, data1);
+		pxdoc1->free(pxdoc1, records1);
+		pxdoc2->free(pxdoc2, data2);
+		pxdoc2->free(pxdoc2, records2);
 	} else {
 		if(schemasdiffer) {
 			fprintf(outfp, _("Schema already differs, will not compare records."));
@@ -1298,6 +1391,11 @@ int main(int argc, char *argv[]) {
 		}
 	}
 	/* }}} */
+
+	if(selectedfields1)
+		pxdoc1->free(pxdoc1, selectedfields1);
+	if(selectedfields2)
+		pxdoc2->free(pxdoc2, selectedfields2);
 
 	/* Close all files and free memory {{{
 	 */
@@ -1324,6 +1422,9 @@ int main(int argc, char *argv[]) {
 #endif
 	/* }}} */
 
+#ifdef MEMORY_DEBUGGING
+	PX_mp_list_unfreed();
+#endif
 	exit(0);
 }
 /* }}} */
