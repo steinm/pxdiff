@@ -1170,6 +1170,7 @@ int main(int argc, char *argv[]) {
 		char **records1, **records2;
 		pxfield_t *pxf;
 		int recordsize, len, i, j, k;
+		int notinlcs1, notinlcs2;
 		int realrecsize1, realrecsize2; /* real record size of only selected fields */
 
 		if((l = (int **) pxdoc1->malloc(pxdoc1, (pxh1->px_numrecords+1)*sizeof(int *), _("Allocate memory for lcs array."))) == NULL) {
@@ -1285,7 +1286,6 @@ int main(int argc, char *argv[]) {
 			fprintf(outfp, "\n");
 			for(i=0; i<pxh1->px_numfields+1; i++)
 				pxdoc1->free(pxdoc1, l[i]);
-			pxdoc1->free(pxdoc1, lcs);
 			pxdoc1->free(pxdoc1, data1);
 			pxdoc1->free(pxdoc1, records1);
 			pxdoc2->free(pxdoc2, data2);
@@ -1339,7 +1339,6 @@ int main(int argc, char *argv[]) {
 
 		/* Output the difference */
 		i = 0; j = 0; k = 0;
-		int notinlcs1, notinlcs2;
 		while(i < pxh1->px_numrecords && j < pxh2->px_numrecords) {
 			notinlcs1 = 0;
 			notinlcs2 = 0;
