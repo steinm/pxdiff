@@ -48,9 +48,8 @@ msgid "  -h, --help          this usage information."
 msgstr "  -h, --help          diese Hilfe."
 
 #: src/main.c:586
-#, fuzzy
 msgid "  --version           show version information."
-msgstr "  -h, --help          diese Hilfe."
+msgstr "  --version           zeige Programmversion.
 
 #: src/main.c:588
 msgid "  -v, --verbose       be more verbose."
