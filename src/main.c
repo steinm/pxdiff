@@ -554,8 +554,12 @@ void show_sql_delete(FILE *outfp, int pkeyindex, pxdoc_t *pxdoc, pxhead_t *pxh, 
 	pxf = pxh->px_fields;
 	fprintf(outfp, "DELETE FROM %s WHERE ", pxh->px_tablename);
 	if(pkeyindex >= 0) {
-		pxf = &(pxh->px_fields[pkeyindex]);
-		offset = selectedfields[pkeyindex];
+		offset = 0;
+		for(i=0; i<pkeyindex; i++) {
+			offset += pxf->px_flen;
+			pxf++;
+		}
+//		offset = selectedfields[pkeyindex];
 		fprintf(outfp, "%s=", pxf->px_fname);
 		switch(pxf->px_ftype) {
 			case pxfAlpha: {
@@ -664,7 +668,7 @@ void show_sql_delete(FILE *outfp, int pkeyindex, pxdoc_t *pxdoc, pxhead_t *pxh, 
 		for(i=0; i<pxh->px_numfields; i++) {
 			if(!selectedfields || (selectedfields && selectedfields[i] >= 0)) {
 				if(first == 1)
-					fprintf(outfp, ", ");
+					fprintf(outfp, " and ");
 				fprintf(outfp, "%s=", pxf->px_fname);
 				switch(pxf->px_ftype) {
 					case pxfAlpha: {
@@ -898,10 +902,15 @@ void show_sql_update(FILE *outfp, int pkeyindex, pxdoc_t *pxdoc1, pxhead_t *pxh1
 		pxf++;
 	}
 
+	pxf = pxh1->px_fields;
 	fprintf(outfp, " WHERE ");
 	if(pkeyindex >= 0) {
-		pxf = &(pxh1->px_fields[pkeyindex]);
-		offset = selectedfields1[pkeyindex];
+		offset = 0;
+		for(i=0; i<pkeyindex; i++) {
+			offset += pxf->px_flen;
+			pxf++;
+		}
+//		offset = selectedfields1[pkeyindex];
 		fprintf(outfp, "%s=", pxf->px_fname);
 		switch(pxf->px_ftype) {
 			case pxfAlpha: {
@@ -1007,7 +1016,6 @@ void show_sql_update(FILE *outfp, int pkeyindex, pxdoc_t *pxdoc1, pxhead_t *pxh1
 	} else {
 		first = 0;
 		offset = 0;
-		pxf = pxh1->px_fields;
 		for(i=0; i<pxh1->px_numfields; i++) {
 			if(!selectedfields1 || (selectedfields1 && selectedfields1[i] >= 0)) {
 				if(first == 1)
