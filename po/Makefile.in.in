@@ -32,10 +32,12 @@ localedir = $(libdir)/locale
 gnulocaledir = $(datadir)/locale
 gettextsrcdir = $(datadir)/glib-2.0/gettext/po
 subdir = po
+install_sh = @install_sh@
+mkdir_p = @mkdir_p@
+mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 
 INSTALL = @INSTALL@
 INSTALL_DATA = @INSTALL_DATA@
-MKINSTALLDIRS = $(top_srcdir)/@MKINSTALLDIRS@
 
 CC = @CC@
 GENCAT = @GENCAT@
@@ -75,7 +77,7 @@ INSTOBJEXT = @INSTOBJEXT@
 
 .po.pox:
 	$(MAKE) $(GETTEXT_PACKAGE).pot
-	$(MSGMERGE) $< $(srcdir)/$(GETTEXT_PACKAGE).pot -o $*.pox
+	$(MSGMERGE) $< $(srcdir)/$(GETTEXT_PACKAGE).pot -o $*pox
 
 .po.mo:
 	$(MSGFMT) -o $@ $<
@@ -102,7 +104,7 @@ install-exec:
 install-data: install-data-@USE_NLS@
 install-data-no: all
 install-data-yes: all
-	if test -r "$(MKINSTALLDIRS)"; then \
+	if test -n "$(MKINSTALLDIRS)"; then \
 	  $(MKINSTALLDIRS) $(DESTDIR)$(datadir); \
 	else \
 	  $(SHELL) $(top_srcdir)/mkinstalldirs $(DESTDIR)$(datadir); \
@@ -116,7 +118,7 @@ install-data-yes: all
 	  esac; \
 	  lang=`echo $$cat | sed 's/\$(CATOBJEXT)$$//'`; \
 	  dir=$(DESTDIR)$$destdir/$$lang/LC_MESSAGES; \
-	  if test -r "$(MKINSTALLDIRS)"; then \
+	  if test -n "$(MKINSTALLDIRS)"; then \
 	    $(MKINSTALLDIRS) $$dir; \
 	  else \
 	    $(SHELL) $(top_srcdir)/mkinstalldirs $$dir; \
@@ -144,7 +146,7 @@ install-data-yes: all
 	  fi; \
 	done
 	if test "$(PACKAGE)" = "glib"; then \
-	  if test -r "$(MKINSTALLDIRS)"; then \
+	  if test -n "$(MKINSTALLDIRS)"; then \
 	    $(MKINSTALLDIRS) $(DESTDIR)$(gettextsrcdir); \
 	  else \
 	    $(SHELL) $(top_srcdir)/mkinstalldirs $(DESTDIR)$(gettextsrcdir); \
@@ -168,7 +170,9 @@ uninstall:
 	  rm -f $(DESTDIR)$(gnulocaledir)/$$lang/LC_MESSAGES/$(GETTEXT_PACKAGE)$(INSTOBJEXT); \
 	  rm -f $(DESTDIR)$(gnulocaledir)/$$lang/LC_MESSAGES/$(GETTEXT_PACKAGE)$(INSTOBJEXT).m; \
 	done
-	rm -f $(DESTDIR)$(gettextsrcdir)/po-Makefile.in.in
+	if test "$(PACKAGE)" = "glib"; then \
+	  rm -f $(DESTDIR)$(gettextsrcdir)/Makefile.in.in; \
+	fi
 
 check: all
 
@@ -177,6 +181,7 @@ dvi info tags TAGS ID:
 mostlyclean:
 	rm -f core core.* *.pox $(GETTEXT_PACKAGE).po *.old.po cat-id-tbl.tmp
 	rm -fr *.o
+	rm -f .intltool-merge-cache
 
 clean: mostlyclean
 
@@ -198,34 +203,30 @@ dist distdir: update-po $(DISTFILES)
 
 update-po: Makefile
 	$(MAKE) $(GETTEXT_PACKAGE).pot
+	tmpdir=`pwd`; \
 	cd $(srcdir); \
 	catalogs='$(CATALOGS)'; \
 	for cat in $$catalogs; do \
 	  cat=`basename $$cat`; \
 	  lang=`echo $$cat | sed 's/\$(CATOBJEXT)$$//'`; \
-	  cp $$lang.po $$lang.old.po; \
 	  echo "$$lang:"; \
-	  if $(MSGMERGE) $$lang; then \
-	    rm -f $$lang.old.po; \
+	  if $$tmpdir/$(INTLTOOL_UPDATE) --gettext-package $(GETTEXT_PACKAGE) --dist -o $$tmpdir/$$lang.new.po $$lang; then \
+	    if cmp $$lang.po $$tmpdir/$$lang.new.po >/dev/null 2>&1; then \
+	      rm -f $$tmpdir/$$lang.new.po; \
+            else \
+	      if mv -f $$tmpdir/$$lang.new.po $$lang.po; then \
+	        :; \
+	      else \
+	        echo "msgmerge for $$lang.po failed: cannot move $$tmpdir/$$lang.new.po to $$lang.po" 1>&2; \
+	        rm -f $$tmpdir/$$lang.new.po; \
+	        exit 1; \
+	      fi; \
+	    fi; \
 	  else \
 	    echo "msgmerge for $$cat failed!"; \
-	    rm -f $$lang.po; \
-	    mv $$lang.old.po $$lang.po; \
+	    rm -f $$tmpdir/$$lang.new.po; \
 	  fi; \
 	done
-
-.po: Makefile
-	$(MAKE)  $(PACKAGE).pot;
-	PATH=`pwd`/../src:$$PATH; \
-	echo; printf "$*: "; \
-	if $(MSGMERGE) $*; then \
-	  rm -f $*.old.po; \
-	  else \
-	    echo "msgmerge for * failed!"; \
-	    mv $*.old.po $*.po; \
-	fi; \
-	msgfmt --statistics $*.po; echo;
-
 
 # POTFILES is created from POTFILES.in by stripping comments, empty lines
 # and Intltool tags (enclosed in square brackets), and appending a full
