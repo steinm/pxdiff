@@ -86,7 +86,9 @@ manpage.1: manpage.sgml
       <command>&dhpackage;</command> command.</para>
 
     <para>&dhpackage; reads two Paradox database files and calculates the
-		  difference.
+		  difference. It can both find differences in the table structure
+			and the data records. Records are always treated as a single unit.
+			Differences within records will not be reported.
       </para>
   </refsect1>
   <refsect1>
