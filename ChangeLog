@@ -1,3 +1,10 @@
+Version 0.0.7
+	- fixed several errors when output mode is sql and no fields are
+	  explicitly selected.
+	- fixed syntax error in DELETE-statement.
+	- the function to show differences on field bases now handles 0.0
+	  and NULL correctly.
+
 Version 0.0.6
 	- many man page updates
 	- return exit code 1 if files differ, 2 if an error occured and 0 otherwise
