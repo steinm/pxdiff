@@ -1,0 +1,61 @@
+Version 0.1.4
+	- support for gsf library
+
+Version 0.1.3
+	- output file with name "-" means stdout
+	- csv output of .PX files got an extra column with the block number of
+	  the current record for better investigation of the index file
+	- output of first and last block number
+	- option 'output' is now 'output-file'
+	- fixed debug output
+	- added output of fileUpdateTime
+	- some smaller cleanups
+	- Use PX_get_data_byte() instead accessing the data directly
+
+Version 0.1.2
+	- added option --primary-index-file to read a primary index which
+	  accelerates access 
+	- debug mode: output information about the datablock where a record is stored
+	- usage output has been to restrictive if run as pxview
+	- options --output-deleted, --delete-table has been misinterpreted
+	- new option --mark-deleted to mark those records which are deleted
+	  the csv and html ouput will have an extra column
+
+Version 0.1.1
+	- html output
+	- field selection is case insenitive
+
+Version 0.1.0
+	- output modified flags 1 and 2 in verbose mode
+	- added aliases --include-blobs and --delete-table for
+	  --includeblobs and --deletetable
+	- allow to read deleted records (new option --output-deleted)
+	- output calculated size of a record
+	- use own error handler
+
+Version 0.0.7
+	- man pages are not created if docbook-to-man is missing
+	- program returns 1 in case of error else 0
+	- better sql output
+	- fixed potential segm fault
+	- moved manpage into section 1
+
+Version 0.0.6
+	- output sql data only if num records > 0
+	- put field values into enclosing char only if the delimiter is in
+	  the field value
+	- added option -v to output more header information
+	- added spec file to create rpms
+	- don't use enclosure characters in sql output
+
+Version 0.0.5
+	- added support for recoding alpha fields
+	- access to alpha fields is done with PX_get_data_alpha()
+
+Version 0.0.4
+  - proper handling of negative Long, Short, Double value
+	- finaly implemented export to a given output file (option --output)
+	- added option --deletetable
+	- updated manual page
+	- calling pxview as px2sql or px2csv will set the appropriate options
+	- moved data conversion routines to pxlib

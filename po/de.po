@@ -1,0 +1,240 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2003-11-04 16:14+0100\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=ISO-8859-1\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: src/main.c:90
+#, c-format
+msgid "Version: %s %s http://sourceforge.net/projects/pxlib"
+msgstr ""
+
+#: src/main.c:92
+msgid "Copyright: Copyright (C) 2003 Uwe Steinmann <uwe@steinmann.cx>"
+msgstr ""
+
+#: src/main.c:94
+#, c-format
+msgid "%s Compares two paradox databases."
+msgstr ""
+
+#: src/main.c:96
+#, c-format
+msgid "Usage: %s [OPTIONS] FILE1 FILE2"
+msgstr ""
+
+#: src/main.c:98
+msgid "Options:"
+msgstr ""
+
+#: src/main.c:100
+msgid "  -h, --help          this usage information."
+msgstr ""
+
+#: src/main.c:102
+msgid "  -v, --verbose       be more verbose."
+msgstr ""
+
+#: src/main.c:104
+msgid "  --mode=MODE         set output mode (csv, sql, or schema)."
+msgstr ""
+
+#: src/main.c:106
+msgid "  -o, --output-file=FILE output data into file instead of stdout."
+msgstr ""
+
+#: src/main.c:108
+msgid "  -n, --primary-index-file=FILE read primary index from file."
+msgstr ""
+
+#: src/main.c:110
+msgid "  -r, --recode=ENCODING sets the target encoding."
+msgstr ""
+
+#: src/main.c:112
+msgid "  --fields=REGEX      extended regular expression to select fields."
+msgstr ""
+
+#: src/main.c:116
+msgid "  --use-gsf           use gsf library to read input file."
+msgstr ""
+
+#: src/main.c:124
+msgid "libpx uses librecode for recoding."
+msgstr ""
+
+#: src/main.c:127
+msgid "libpx uses iconv for recoding."
+msgstr ""
+
+#: src/main.c:130
+msgid "libpx has no support for recoding."
+msgstr ""
+
+#: src/main.c:135
+msgid "libpx has been compiled for big endian architecture."
+msgstr ""
+
+#: src/main.c:137
+msgid "libpx has been compiled for little endian architecture."
+msgstr ""
+
+#: src/main.c:139
+#, c-format
+msgid "libpx has gsf support: %s"
+msgstr ""
+
+#: src/main.c:139
+msgid "Yes"
+msgstr ""
+
+#: src/main.c:139
+msgid "No"
+msgstr ""
+
+#: src/main.c:141
+#, c-format
+msgid "libpx has version: %d.%d.%d"
+msgstr ""
+
+#: src/main.c:273
+msgid "You must at least specify the files to compare."
+msgstr ""
+
+#: src/main.c:285
+msgid "Could not open output file."
+msgstr ""
+
+#: src/main.c:292 src/main.c:298
+msgid "Could not create new paradox instance."
+msgstr ""
+
+#: src/main.c:317
+msgid "Could not open gsf input file."
+msgstr ""
+
+#: src/main.c:326
+msgid "Could not open input file."
+msgstr ""
+
+#: src/main.c:333
+msgid "Could not open first input file."
+msgstr ""
+
+#: src/main.c:338
+msgid "Could not open second input file."
+msgstr ""
+
+#: src/main.c:349
+msgid "Could not open primary index to first file."
+msgstr ""
+
+#: src/main.c:354
+msgid "Could not read primary index to first file."
+msgstr ""
+
+#: src/main.c:359
+msgid "Could not add primary index to first file."
+msgstr ""
+
+#: src/main.c:368
+msgid "Could not open primary index to second file."
+msgstr ""
+
+#: src/main.c:373
+msgid "Could not read primary index to second file."
+msgstr ""
+
+#: src/main.c:378
+msgid "Could not add primary index to second file."
+msgstr ""
+
+#: src/main.c:394
+#, c-format
+msgid "-File Version: %1.1f"
+msgstr ""
+
+#: src/main.c:395
+#, c-format
+msgid "+File Version: %1.1f"
+msgstr ""
+
+#: src/main.c:399
+#, c-format
+msgid "-File Type: %d"
+msgstr ""
+
+#: src/main.c:400
+#, c-format
+msgid "+File Type: %d"
+msgstr ""
+
+#: src/main.c:404
+#, c-format
+msgid "-Tablename: %s"
+msgstr ""
+
+#: src/main.c:405
+#, c-format
+msgid "+Tablename: %s"
+msgstr ""
+
+#: src/main.c:409
+#, c-format
+msgid "-Num. of Records: %d"
+msgstr ""
+
+#: src/main.c:410
+#, c-format
+msgid "+Num. of Records: %d"
+msgstr ""
+
+#: src/main.c:414
+#, c-format
+msgid "-Num. of Fields: %d"
+msgstr ""
+
+#: src/main.c:415
+#, c-format
+msgid "+Num. of Fields: %d"
+msgstr ""
+
+#: src/main.c:419
+#, c-format
+msgid "-Code Page: %d"
+msgstr ""
+
+#: src/main.c:420
+#, c-format
+msgid "+Code Page: %d"
+msgstr ""
+
+#: src/main.c:453
+msgid "Could not compile regular expression to select fields."
+msgstr ""
+
+#. allocate memory for selected field array
+#: src/main.c:458
+msgid "Could not allocate memory for array of selected fields."
+msgstr ""
+
+#: src/main.c:476
+msgid "Could not allocate memory for record."
+msgstr ""
+
+#: src/main.c:638
+#, c-format
+msgid "Couldn't get record number %d\n"
+msgstr ""
