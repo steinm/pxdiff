@@ -1,0 +1,15 @@
+Source: pxdiff
+Section: misc 
+Priority: optional
+Maintainer: Uwe Steinmann <uwe@steinmann.cx>
+Build-Depends: debhelper (>> 4.0.0), pxlib-dev (>= 0.1.9)
+Standards-Version: 3.6.1
+
+Package: pxdiff
+Architecture: any
+Depends: ${shlibs:Depends}
+Description: Calculates difference between two Paradox database
+ Compares two Paradox databases and outputs the result in a diff
+ like format. Both the table structure and the records are being
+ compared. record comparison will take only place if the table
+ structure does not differ.
