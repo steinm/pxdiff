@@ -783,7 +783,7 @@ void show_sql_update(FILE *outfp, int pkeyindex, pxdoc_t *pxdoc1, pxhead_t *pxh1
 	pxfield_t *pxf;
 	int i, offset, first;
 
-	fprintf(outfp, "UPDATE %s SET ", pxh2->px_tablename);
+	fprintf(outfp, "UPDATE %s SET ", pxh1->px_tablename);
 	first = 0;
 	offset = 0;
 	pxf = pxh2->px_fields;
@@ -1394,11 +1394,11 @@ void usage(char *progname) {
 
 	printf(_("Version: %s %s http://sourceforge.net/projects/pxlib"), progname, VERSION);
 	printf("\n");
-	printf(_("Copyright: Copyright (C) 2003 Uwe Steinmann <uwe@steinmann.cx>"));
+	printf(_("Copyright: Copyright (C) 2003, 2004 Uwe Steinmann <uwe@steinmann.cx>"));
 	printf("\n\n");
 	printf(_("%s compares two paradox databases."), progname);
 	printf("\n\n");
-	printf(_("Usage: %s [OPTIONS] FILE1 FILE2"), progname);
+	printf(_("Usage: %s [OPTIONS] DATABASE1 DATABASE2 [PRIINDEX1 PRIINDEX2]"), progname);
 	printf("\n\n");
 	printf(_("Options:"));
 	printf("\n\n");
