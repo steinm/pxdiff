@@ -1414,7 +1414,7 @@ void usage(char *progname) {
 	printf("\n");
 	printf(_("  -s, --sort          sort data before calculating difference."));
 	printf("\n");
-	printf(_("  --mode=MODE         set compare mode (schema, data)."));
+	printf(_("  --mode=MODE         set compare mode (schema (default), data)."));
 	printf("\n");
 	printf(_("  --output-mode=MODE  set output mode (plain (default), sql, stat)."));
 	printf("\n");
