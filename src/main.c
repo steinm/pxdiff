@@ -2514,7 +2514,11 @@ int main(int argc, char *argv[]) {
 #ifdef MEMORY_DEBUGGING
 	PX_mp_list_unfreed();
 #endif
-	exit(0);
+	/* return 1 if files differ, otherwise 0 */
+	if(updatedrecs == 0 && deletedrecs == 0 && addedrecs == 0)
+		exit(0);
+	else
+		exit(1);
 }
 /* }}} */
 
