@@ -339,11 +339,14 @@ void show_record(FILE *outfp, pxdoc_t *pxdoc, pxhead_t *pxh, char *data, int *se
  * again be successfull. Since i is not at its upper limit it will not be
  * incremented any more. If j ist also at its upper limit the while loop
  * will quit.
+ *
+ * Returns the number of changed fields.
  */
-void show_record_diff(FILE *outfp, pxdoc_t *pxdoc1, pxhead_t *pxh1, char *data1, int *selectedfields1, pxdoc_t *pxdoc2, pxhead_t *pxh2, char *data2, int *selectedfields2) {
+int show_record_diff(FILE *outfp, pxdoc_t *pxdoc1, pxhead_t *pxh1, char *data1, int *selectedfields1, pxdoc_t *pxdoc2, pxhead_t *pxh2, char *data2, int *selectedfields2) {
 	pxfield_t *pxf1, *pxf2;
 	int i, j;
 	int offset1, offset2;
+	int fccount = 0; /* field change count */
 	char delimiter = '\t';
 	char enclosure = '\"';
 	pxf1 = pxh1->px_fields;
@@ -361,7 +364,8 @@ void show_record_diff(FILE *outfp, pxdoc_t *pxdoc1, pxhead_t *pxh1, char *data1,
 		/* There may be no selected fields at all. In such a case the whole
 		 * record will be compared. If we have selected fields we need to make
 		 * sure to access the right field which may be at different positions
-		 * in the table structure.
+		 * in the table structure. selectedfields[1|2] contains the offset
+		 * of each field if it is selected.
 		 */
 		if(!selectedfields1 || !selectedfields2 || ((selectedfields1[i] >= 0) && (selectedfields2[j] >= 0))) {
 			int ret1, ret2;
@@ -375,12 +379,15 @@ void show_record_diff(FILE *outfp, pxdoc_t *pxdoc1, pxhead_t *pxh1, char *data1,
 								fprintf(outfp, "%s%c", pxf1[i].px_fname, delimiter);
 								fprintf(outfp, "'%s'%c", value1, delimiter);
 								fprintf(outfp, "'%s'\n", value2);
+								fccount++;
 							} else if((ret1 > 0) && (ret2 == 0)) {
 								fprintf(outfp, "%s%c", pxf1[i].px_fname, delimiter);
 								fprintf(outfp, "'%s'%cNULL\n", value1, delimiter);
+								fccount++;
 							} else if((ret2 > 0) && (ret1 == 0)) {
 								fprintf(outfp, "%s%c", pxf1[i].px_fname, delimiter);
 								fprintf(outfp, "NULL%c'%s'\n", delimiter, value2);
+								fccount++;
 							}
 							pxdoc1->free(pxdoc2, value2);
 						}
@@ -395,6 +402,7 @@ void show_record_diff(FILE *outfp, pxdoc_t *pxdoc1, pxhead_t *pxh1, char *data1,
 					if((ret1 = PX_get_data_long(pxdoc1, &data1[offset1], pxf1[i].px_flen, &value1)) >= 0) {
 						if((ret2 = PX_get_data_long(pxdoc2, &data2[offset2], pxf2[j].px_flen, &value2)) >= 0) {
 							if(value1 != value2) {
+								fccount++;
 								fprintf(outfp, "%s%c", pxf1[i].px_fname, delimiter);
 								if(ret1) {
 									PX_SdnToGregorian(value1+1721425, &year1, &month1, &day1);
@@ -420,6 +428,7 @@ void show_record_diff(FILE *outfp, pxdoc_t *pxdoc1, pxhead_t *pxh1, char *data1,
 					if((ret1 = PX_get_data_short(pxdoc1, &data1[offset1], pxf1[i].px_flen, &value1)) >= 0) {
 						if((ret2 = PX_get_data_short(pxdoc2, &data2[offset2], pxf2[j].px_flen, &value2)) >= 0) {
 							if(value1 != value2) {
+								fccount++;
 								fprintf(outfp, "%s%c", pxf1[i].px_fname, delimiter);
 								if(ret1) {
 									fprintf(outfp, "%d", value1);
@@ -445,6 +454,7 @@ void show_record_diff(FILE *outfp, pxdoc_t *pxdoc1, pxhead_t *pxh1, char *data1,
 					if((ret1 = PX_get_data_long(pxdoc1, &data1[offset1], pxf1[i].px_flen, &value1)) >= 0) {
 						if((ret2 = PX_get_data_long(pxdoc2, &data2[offset2], pxf2[j].px_flen, &value2)) >= 0) {
 							if(value1 != value2) {
+								fccount++;
 								fprintf(outfp, "%s%c", pxf1[i].px_fname, delimiter);
 								if(ret1) {
 									fprintf(outfp, "%ld", value1);
@@ -468,6 +478,7 @@ void show_record_diff(FILE *outfp, pxdoc_t *pxdoc1, pxhead_t *pxh1, char *data1,
 					if((ret1 = PX_get_data_long(pxdoc1, &data1[offset1], pxf1[i].px_flen, &value1)) >= 0) {
 						if((ret2 = PX_get_data_long(pxdoc2, &data2[offset2], pxf2[j].px_flen, &value2)) >= 0) {
 							if(value1 != value2) {
+								fccount++;
 								fprintf(outfp, "%s%c", pxf1[i].px_fname, delimiter);
 								if(ret1) {
 									fprintf(outfp, "'%02d:%02d:%02.3f'", value1/3600000, value1/60000%60, value1%60000/1000.0);
@@ -492,6 +503,7 @@ void show_record_diff(FILE *outfp, pxdoc_t *pxdoc1, pxhead_t *pxh1, char *data1,
 					if((ret1 = PX_get_data_double(pxdoc1, &data1[offset1], pxf1[i].px_flen, &value1)) >= 0) {
 						if((ret2 = PX_get_data_double(pxdoc2, &data2[offset2], pxf2[j].px_flen, &value2)) >= 0) {
 							if(value1 != value2) {
+								fccount++;
 								fprintf(outfp, "%s%c", pxf1[i].px_fname, delimiter);
 								if(ret1) {
 									fprintf(outfp, "%f", value1);
@@ -515,6 +527,7 @@ void show_record_diff(FILE *outfp, pxdoc_t *pxdoc1, pxhead_t *pxh1, char *data1,
 					if(PX_get_data_byte(pxdoc1, &data1[offset1], pxf1[i].px_flen, &value1)) {
 						if(PX_get_data_byte(pxdoc2, &data2[offset2], pxf2[j].px_flen, &value2)) {
 							if(value1 != value2) {
+								fccount++;
 								fprintf(outfp, "%s%c", pxf1[i].px_fname, delimiter);
 								if(ret1) {
 									fprintf(outfp, "%d", value1);
@@ -547,16 +560,16 @@ void show_record_diff(FILE *outfp, pxdoc_t *pxdoc1, pxhead_t *pxh1, char *data1,
 			 * again for equal fields.
 			 */
 			if((selectedfields1[i] < 0) && (i < pxh1->px_numfields)) {
-				offset1 += pxf1[i].px_flen;
 				i++;
 			}
 			if((selectedfields2[j] < 0) && (j < pxh2->px_numfields)) {
-				offset2 += pxf2[j].px_flen;
 				j++;
 			}
 		}
 	}
-	fprintf(outfp, "\n");
+	fprintf(outfp, _("%d fields changed."), fccount);
+	fprintf(outfp, "\n\n");
+	return(fccount);
 }
 /* }}} */
 
@@ -607,6 +620,8 @@ void usage(char *progname) {
 	printf(_("  --compare-common    compare only those fields common in both databases."));
 	printf("\n");
 	printf(_("  --disregard-codepage  different code pages will not prevent record\n                      comparision."));
+	printf("\n");
+	printf(_("  --show-record-diff  Show field differences within a record."));
 	printf("\n");
 #ifdef HAVE_GSF
 	if(PX_has_gsf_support()) {
@@ -659,6 +674,7 @@ int main(int argc, char *argv[]) {
 	int schemasdiffer = 0;
 	int comparecommon = 0;
 	int disregardcodepage = 0;
+	int showrecorddiff = 0;
 	int usegsf = 0;
 	int verbose = 0;
 	int sortdata = 0;
@@ -710,6 +726,7 @@ int main(int argc, char *argv[]) {
 			{"version", 0, 0, 11},
 			{"compare-common", 0, 0, 12},
 			{"disregard-codepage", 0, 0, 13},
+			{"show-record-diff", 0, 0, 14},
 			{0, 0, 0, 0}
 		};
 		c = getopt_long (argc, argv, "ivtdsf:r:o:k:h",
@@ -742,6 +759,9 @@ int main(int argc, char *argv[]) {
 				break;
 			case 13:
 				disregardcodepage = 1;
+				break;
+			case 14:
+				showrecorddiff = 1;
 				break;
 			case 'v':
 				verbose = 1;
@@ -1472,7 +1492,7 @@ int main(int argc, char *argv[]) {
 			exit(1);
 		}
 
-		/* Sort to the data arrays */
+		/* Sort the data arrays if requested by the user. */
 		if(sortdata) {
 			if(pkey)
 				qsort_len = pkeylen1;
@@ -1490,7 +1510,7 @@ int main(int argc, char *argv[]) {
 			comparelen = realrecsize1;
 		len = lcs_length(l, (void **) records1, pxh1->px_numrecords,
 		                    (void **) records2, pxh2->px_numrecords,
-		                    recordcmp, recordsize);
+		                    recordcmp, comparelen);
 
 //		lcs_output_matrix(l, pxh1->px_numrecords, pxh2->px_numrecords);
 
@@ -1509,7 +1529,7 @@ int main(int argc, char *argv[]) {
 		}
 		lcs_sequence(l, (void **) records1, pxh1->px_numrecords,
 		                (void **) records2, pxh2->px_numrecords,
-		                recordcmp, recordsize, (void **) lcs);
+		                recordcmp, comparelen, (void **) lcs);
 
 //		for(j=0; j<len; j++) {
 //			fprintf(outfp, "%d-0x%X-", j, lcs[j]);
@@ -1517,11 +1537,13 @@ int main(int argc, char *argv[]) {
 //		}
 
 		/* Output the difference */
-		i = 0; j = 0; k = 0;
+		i = 0; /* Index in first database */
+		j = 0; /* Index in second database */
+		k = 0; /* Index in common sequence */
 		while(i < pxh1->px_numrecords && j < pxh2->px_numrecords) {
 			notinlcs1 = 0;
 			notinlcs2 = 0;
-			if(recordcmp(records1[i], records2[j], recordsize)) {
+			if(recordcmp(records1[i], records2[j], comparelen)) {
 				/* We could compare just pointers in case of records1 because
 				 * lcs contains the pointers to the records in records1. I'm
 				 * not sure if there are any site effects if records1 contains
@@ -1529,17 +1551,27 @@ int main(int argc, char *argv[]) {
 				 * pointers. Speed wise its not that much of a difference.
 				 */
 //				if(k >= len || records1[i] != lcs[k]) {
-				if(k >= len || recordcmp(records1[i], lcs[k], recordsize)) {
+				if(k >= len || recordcmp(records1[i], lcs[k], comparelen)) {
 					notinlcs1 = 1;
 				}
-				if(k >= len || recordcmp(records2[j], lcs[k], recordsize)) {
+				if(k >= len || recordcmp(records2[j], lcs[k], comparelen)) {
 					notinlcs2 = 1;
 				}
-				/* Two records are assumed to be the same when its primary
-				 * key is identical.
+				if(notinlcs1 == 1) {
+					fprintf(outfp, "-\t");
+					show_record(outfp, pxdoc1, pxh1, records1[i++], selectedfields1);
+				}
+				if(notinlcs2 == 1) {
+					fprintf(outfp, "+\t");
+					show_record(outfp, pxdoc2, pxh2, records2[j++], selectedfields2);
+				}
+			} else {
+				/* If only the primary key has been taken to find differences
+				 * then it could be that two records has the same primary key
+				 * but different other fields. In such a case this record
+				 * has to be updated.
 				 */
-				if(pkey && notinlcs1 == 1 && notinlcs2 == 1 &&
-				   !recordcmp(&records1[i][pkeystart1], &records2[j][pkeystart2], pkeylen1)) {
+				if(recordcmp(records1[i], records2[j], recordsize)) {
 //					hex_dump(outfp, records1[i], recordsize);
 //					fprintf(outfp, "\n");
 //					hex_dump(outfp, records2[j], recordsize);
@@ -1549,19 +1581,9 @@ int main(int argc, char *argv[]) {
 					show_record(outfp, pxdoc1, pxh1, records1[i], selectedfields1);
 					fprintf(outfp, ">\t");
 					show_record(outfp, pxdoc2, pxh2, records2[j], selectedfields2);
-					show_record_diff(outfp, pxdoc1, pxh1, records1[i], selectedfields1, pxdoc2, pxh2, records2[j], selectedfields2);
-					i++; j++;
-				} else {
-					if(notinlcs1 == 1) {
-						fprintf(outfp, "-\t");
-						show_record(outfp, pxdoc1, pxh1, records1[i++], selectedfields1);
-					}
-					if(notinlcs2 == 1) {
-						fprintf(outfp, "+\t");
-						show_record(outfp, pxdoc2, pxh2, records2[j++], selectedfields2);
-					}
+					if(showrecorddiff)
+						show_record_diff(outfp, pxdoc1, pxh1, records1[i], selectedfields1, pxdoc2, pxh2, records2[j], selectedfields2);
 				}
-			} else {
 				i++; j++; k++;
 			}
 		}
