@@ -203,7 +203,7 @@ void show_field(FILE *outfp, pxfield_t *pxf) {
 /* show_record() {{{
  * Outputs a record as csv
  */
-void show_record(FILE *outfp, pxdoc_t *pxdoc, pxhead_t *pxh, char *data) {
+void show_record(FILE *outfp, pxdoc_t *pxdoc, pxhead_t *pxh, char *data, char *selectedfields) {
 	pxfield_t *pxf;
 	int offset, first, i;
 	char delimiter = '\t';
@@ -212,7 +212,7 @@ void show_record(FILE *outfp, pxdoc_t *pxdoc, pxhead_t *pxh, char *data) {
 	offset = 0;
 	first = 0;  // set to 1 when first field has been output
 	for(i=0; i<pxh->px_numfields; i++) {
-//		if(fieldregex == NULL || selectedfields[i]) {
+		if(!selectedfields || (selectedfields && selectedfields[i])) {
 			if(first == 1)
 				fprintf(outfp, "%c", delimiter);
 			switch(pxf->px_ftype) {
@@ -294,8 +294,8 @@ void show_record(FILE *outfp, pxdoc_t *pxdoc, pxhead_t *pxh, char *data) {
 				default:
 					fprintf(outfp, "");
 			}
-//		}
-		offset += pxf->px_flen;
+			offset += pxf->px_flen; /* record data only contains the selected fields */
+		}
 		pxf++;
 	}
 	fprintf(outfp, "\n");
@@ -458,9 +458,15 @@ void usage(char *progname) {
 	printf("\n");
 	printf(_("  -v, --verbose       be more verbose."));
 	printf("\n");
+	printf(_("  -d, --data          compare data."));
+	printf("\n");
+	printf(_("  -t, --schema        compare schema."));
+	printf("\n");
+	printf(_("  --mode=MODE         set compare mode (schema, data)."));
+	printf("\n");
 	printf(_("  -o, --output-file=FILE output data into file instead of stdout."));
 	printf("\n");
-	printf(_("  -n, --primary-index-file=FILE read primary index from file."));
+	printf(_("  -n, --primary-key=FIELD use field as primary key."));
 	printf("\n");
 	printf(_("  -r, --recode=ENCODING sets the target encoding."));
 	printf("\n");
@@ -507,13 +513,10 @@ int main(int argc, char *argv[]) {
 	pxdoc_t *pxdoc1 = NULL, *pxdoc2 = NULL;
 	pxdoc_t *pindexdoc1 = NULL, *pindexdoc2 = NULL;
 	char *progname = NULL;
-	char *selectedfields = NULL;
-	int i1, i2, j, c; // general counters
-	int first; // used to indicate if output has started or not
-	int outputcsv = 0;
-	int outputhtml = 0;
+	char *selectedfields1 = NULL;
+	char *selectedfields2 = NULL;
+	int j, c; // general counters
 	int outputinfo = 0;
-	int outputsql = 0;
 	int comparedata = 0;
 	int compareschema = 0;
 	int outputdebug = 0;
@@ -527,6 +530,9 @@ int main(int argc, char *argv[]) {
 	char *outputfile = NULL;
 	char *pindexfile1 = NULL;
 	char *pindexfile2 = NULL;
+	char *pkey = NULL;
+	int pkeystart1, pkeystart2;
+	int pkeylen1, pkeylen2;
 	char *fieldregex = NULL;
 	char *targetencoding = NULL;
 	FILE *outfp = NULL;
@@ -546,9 +552,7 @@ int main(int argc, char *argv[]) {
 		int option_index = 0;
 		static struct option long_options[] = {
 			{"info", 0, 0, 'i'},
-			{"csv", 0, 0, 'c'},
-			{"sql", 0, 0, 's'},
-			{"html", 0, 0, 'x'},
+			{"data", 0, 0, 'd'},
 			{"schema", 0, 0, 't'},
 			{"data", 0, 0, 'd'},
 			{"verbose", 0, 0, 'v'},
@@ -558,21 +562,17 @@ int main(int argc, char *argv[]) {
 			{"fields", 1, 0, 'f'},
 			{"mode", 1, 0, 4},
 			{"use-gsf", 0, 0, 8},
-			{"primary-index-file1", 1, 0, 'n'},
+			{"primary-key", 1, 0, 'k'},
 			{0, 0, 0, 0}
 		};
-		c = getopt_long (argc, argv, "icsxvtdf:r:o:n:h",
+		c = getopt_long (argc, argv, "ivtdf:r:o:k:h",
 				long_options, &option_index);
 		if (c == -1)
 			break;
 		switch (c) {
 			case 4:
-				if(!strcmp(optarg, "csv")) {
-					outputcsv = 1;
-				} else if(!strcmp(optarg, "sql")) {
-					outputsql = 1;
-				} else if(!strcmp(optarg, "html")) {
-					outputhtml = 1;
+				if(!strcmp(optarg, "data")) {
+					comparedata = 1;
 				} else if(!strcmp(optarg, "schema")) {
 					compareschema = 1;
 				} else if(!strcmp(optarg, "debug")) {
@@ -607,17 +607,8 @@ int main(int argc, char *argv[]) {
 			case 'i':
 				outputinfo = 1;
 				break;
-			case 'c':
-				outputcsv = 1;
-				break;
-			case 's':
-				outputsql = 1;
-				break;
-			case 'x':
-				outputhtml = 1;
-				break;
-			case 'n':
-				pindexfile1 = strdup(optarg);
+			case 'k':
+				pkey = strdup(optarg);
 				break;
 		}
 	}
@@ -627,7 +618,13 @@ int main(int argc, char *argv[]) {
 		inputfile1 = strdup(argv[optind++]);
 	}
 	if (optind < argc) {
-		inputfile2 = strdup(argv[optind]);
+		inputfile2 = strdup(argv[optind++]);
+	}
+	if (optind < argc) {
+		pindexfile1 = strdup(argv[optind++]);
+	}
+	if (optind < argc) {
+		pindexfile2 = strdup(argv[optind++]);
 	}
 
 	if(!inputfile1 || !inputfile2) {
@@ -753,6 +750,129 @@ int main(int argc, char *argv[]) {
 		PX_set_targetencoding(pxdoc2, targetencoding);
 	}
 
+	/* Check which fields shall be compared {{{
+	 */
+	if(fieldregex) {
+		regex_t preg;
+		pxfield_t *pxf;
+		int i;
+		if(regcomp(&preg, fieldregex, REG_NOSUB|REG_EXTENDED|REG_ICASE)) {
+			fprintf(stderr, _("Could not compile regular expression to select fields."));
+			PX_close(pxdoc1);
+			PX_close(pxdoc2);
+			exit(1);
+		}
+		/* allocate memory for selected field array */
+		if((selectedfields1 = (char *) pxdoc1->malloc(pxdoc1, pxh1->px_numfields, _("Could not allocate memory for array of selected fields."))) == NULL) {
+			PX_close(pxdoc1);
+			PX_close(pxdoc2);
+			exit(1);
+		}
+		if((selectedfields2 = (char *) pxdoc2->malloc(pxdoc2, pxh2->px_numfields, _("Could not allocate memory for array of selected fields."))) == NULL) {
+			PX_close(pxdoc1);
+			PX_close(pxdoc2);
+			exit(1);
+		}
+		memset(selectedfields1, '\0', pxh1->px_numfields);
+		pxf = pxh1->px_fields;
+		for(i=0; i<pxh1->px_numfields; i++) {
+			if(0 == regexec(&preg, pxf->px_fname, 0, NULL, 0)) {
+				selectedfields1[i] = 1;
+			}
+			pxf++;
+		}
+		memset(selectedfields2, '\0', pxh2->px_numfields);
+		pxf = pxh2->px_fields;
+		for(i=0; i<pxh2->px_numfields; i++) {
+			if(0 == regexec(&preg, pxf->px_fname, 0, NULL, 0)) {
+				selectedfields2[i] = 1;
+			}
+			pxf++;
+		}
+	}
+	/* }}} */
+
+	/* Check for primary key {{{
+	 * The primary key ist used to match records in the two databases.
+	 * The database must be sorted by the primary key. If two matching records
+	 * are found the output will indicate that the record has changed and not
+	 * a new record was added a an old one deleted.
+	 */
+	if(pkey) {
+		pxfield_t *pxf;
+		int i;
+
+		pkeystart1 = 0;
+		pkeylen1 = 0;
+		pxf = pxh1->px_fields;
+		for(i=0; i<pxh1->px_numfields; i++) {
+			if(0 == strcasecmp(pkey, pxf->px_fname)) {
+				pkeylen1 = pxf->px_flen;
+				break;
+			}
+			if(fieldregex) {
+				if(selectedfields1[i]) {
+					pkeystart1 += pxf->px_flen;
+				}
+			} else {
+				pkeystart1 += pxf->px_flen;
+			}
+			pxf++;
+		}
+		if(pkeylen1 == 0) {
+			fprintf(stderr, _("Primary key could not be found in first database."));
+			PX_close(pxdoc1);
+			PX_close(pxdoc2);
+			exit(1);
+		}
+		if(selectedfields1 && !selectedfields1[i]) {
+			fprintf(stderr, _("Primary key is not in list of selected fields."));
+			PX_close(pxdoc1);
+			PX_close(pxdoc2);
+			exit(1);
+		}
+
+		pkeystart2 = 0;
+		pkeylen2 = 0;
+		pxf = pxh2->px_fields;
+		for(i=0; i<pxh2->px_numfields; i++) {
+			if(0 == strcasecmp(pkey, pxf->px_fname)) {
+				pkeylen2 = pxf->px_flen;
+				break;
+			}
+			if(fieldregex) {
+				if(selectedfields2[i]) {
+					pkeystart2 += pxf->px_flen;
+				}
+			} else {
+				pkeystart2 += pxf->px_flen;
+			}
+			pxf++;
+		}
+		if(pkeylen2 == 0) {
+			fprintf(stderr, _("Primary key could not be found in second database."));
+			PX_close(pxdoc1);
+			PX_close(pxdoc2);
+			exit(1);
+		}
+		if(selectedfields1 && !selectedfields1[i]) {
+			fprintf(stderr, _("Primary key is not in list of selected fields."));
+			PX_close(pxdoc1);
+			PX_close(pxdoc2);
+			exit(1);
+		}
+
+		/* Check if both keys are equally long */
+		if(pkeylen1 != pkeylen2) {
+			fprintf(stderr, _("Primary keys has different length in databases."));
+			PX_close(pxdoc1);
+			PX_close(pxdoc2);
+			exit(1);
+		}
+		fprintf(outfp, "primary key: %s: %d %d: %d %d\n", pkey, pkeystart1, pkeylen1, pkeystart2, pkeylen2);
+	}
+	/* }}} */
+
 	/* Compare schema {{{
 	 */
 	if(compareschema) {
@@ -760,6 +880,8 @@ int main(int argc, char *argv[]) {
 		int i, j, k, len;
 		pxfield_t **lcs;
 		pxfield_t **fields1, **fields2;
+		int numfields1, numfields2;
+
 		if(pxh1->px_fileversion != pxh2->px_fileversion) {
 			fprintf(outfp, _("-File Version: %1.1f"), (float) pxh1->px_fileversion/10.0);
 			fprintf(outfp, "\n");
@@ -789,25 +911,29 @@ int main(int argc, char *argv[]) {
 			fprintf(outfp, "\n");
 			fprintf(outfp, _("+Num. of Fields: %d"), pxh2->px_numfields);
 			fprintf(outfp, "\n");
+			if(fieldregex == NULL)
+				schemasdiffer = 1;
 		}
 		if(pxh1->px_doscodepage != pxh2->px_doscodepage) {
 			fprintf(outfp, _("-Code Page: %d"), pxh1->px_doscodepage);
 			fprintf(outfp, "\n");
 			fprintf(outfp, _("+Code Page: %d"), pxh2->px_doscodepage);
 			fprintf(outfp, "\n");
+			schemasdiffer = 1;
 		}
-
 
 		pxf1 = pxh1->px_fields;
 		pxf2 = pxh2->px_fields;
-		i1 = i2 = 0;
+
+		/* Allocate memory for lcs matrix: n strings of length m
+		 * Could be smaller if field selection was taken into account */
 		if((l = (int **) pxdoc1->malloc(pxdoc1, (pxh1->px_numfields+1)*sizeof(int *), _("Could not allocate memory lcs array."))) == NULL) {
 			PX_close(pxdoc1);
 			PX_close(pxdoc2);
 			exit(1);
 		}
-		for(i1=0; i1<pxh1->px_numfields+1; i1++) {
-			if((l[i1] = (int *) pxdoc1->malloc(pxdoc1, (pxh2->px_numfields+1) * sizeof(int), _("Could not allocate memory lcs array."))) == NULL) {
+		for(i=0; i<pxh1->px_numfields+1; i++) {
+			if((l[i] = (int *) pxdoc1->malloc(pxdoc1, (pxh2->px_numfields+1) * sizeof(int), _("Could not allocate memory lcs array."))) == NULL) {
 				PX_close(pxdoc1);
 				PX_close(pxdoc2);
 				exit(1);
@@ -815,49 +941,66 @@ int main(int argc, char *argv[]) {
 		}
 
 		/* Create an array of pxfield_t pointers because lcs_length needs it. */
-		if((fields1 = (pxfield_t **) pxdoc1->malloc(pxdoc1, (pxh1->px_numfields)*sizeof(pxfield_t *), _("Could not allocate memory lcs array."))) == NULL) {
+		if((fields1 = (pxfield_t **) pxdoc1->malloc(pxdoc1, (pxh1->px_numfields)*sizeof(pxfield_t *), _("Could not allocate memory for array of field pointers."))) == NULL) {
+			for(i=0; i<pxh1->px_numfields+1; i++)
+				px_free(pxdoc1, l[i]);
+			px_free(pxdoc1, l);
 			PX_close(pxdoc1);
 			PX_close(pxdoc2);
 			exit(1);
 		}
+		numfields1 = 0;
 		for(i=0; i<pxh1->px_numfields; i++) {
-			fields1[i] = &pxf1[i];
+			if(fieldregex == NULL || selectedfields1[i]) {
+				fields1[numfields1++] = &pxf1[i];
+			}
 		}
-		if((fields2 = (pxfield_t **) pxdoc1->malloc(pxdoc1, (pxh2->px_numfields)*sizeof(pxfield_t *), _("Could not allocate memory lcs array."))) == NULL) {
+		if((fields2 = (pxfield_t **) pxdoc1->malloc(pxdoc1, (pxh2->px_numfields)*sizeof(pxfield_t *), _("Could not allocate memory for array of field pointers."))) == NULL) {
+			for(i=0; i<pxh1->px_numfields+1; i++)
+				px_free(pxdoc1, l[i]);
+			px_free(pxdoc1, l);
+			px_free(pxdoc1, fields1);
 			PX_close(pxdoc1);
 			PX_close(pxdoc2);
 			exit(1);
 		}
+		numfields2 = 0;
 		for(i=0; i<pxh2->px_numfields; i++) {
-			fields2[i] = &pxf2[i];
+			if(fieldregex == NULL || selectedfields2[i]) {
+				fields2[numfields2++] = &pxf2[i];
+			}
 		}
 
 //		sort(fields1, pxh1->px_numfields, fieldcmp);
 //		sort(fields2, pxh2->px_numfields, fieldcmp);
 
 		/* Calculate the length of the commen subsequence */
-		len = lcs_length(l, (void **) fields1, pxh1->px_numfields,
-		                    (void **) fields2, pxh2->px_numfields,
+		len = lcs_length(l, (void **) fields1, numfields1,
+		                    (void **) fields2, numfields2,
 		                    fieldcmp, 0);
 
 		/* Output the matrix for debugging
-		lcs_output_matrix(l, pxh1->px_numfields, pxh2->px_numfields);
+		lcs_output_matrix(l, numfields1, numfields2);
 		*/
 
 		/* get the sequence */
 		if((lcs = (pxfield_t **) pxdoc1->malloc(pxdoc1, len * sizeof(pxfield_t *), _("Could not allocate memory lcs array."))) == NULL) {
+			for(i=0; i<pxh1->px_numfields+1; i++)
+				px_free(pxdoc1, l[i]);
+			px_free(pxdoc1, l);
+			px_free(pxdoc1, fields1);
+			px_free(pxdoc1, fields2);
 			PX_close(pxdoc1);
 			PX_close(pxdoc2);
 			exit(1);
 		}
-		lcs_sequence(l, (void **) fields1, pxh1->px_numfields,
-		                (void **) fields2, pxh2->px_numfields,
+		lcs_sequence(l, (void **) fields1, numfields1,
+		                (void **) fields2, numfields2,
 		                fieldcmp, 0, (void **) lcs);
 
 		/* Output the difference */
 		i = 0; j = 0; k = 0;
-		schemasdiffer = 0;
-		while(i < pxh1->px_numfields && j < pxh2->px_numfields) {
+		while(i < numfields1 && j < numfields2) {
 			if(fieldcmp(fields1[i], fields2[j], 0)) {
 				if(fieldcmp(fields1[i], lcs[k], 0)) {
 					fprintf(outfp, "- ");
@@ -874,33 +1017,14 @@ int main(int argc, char *argv[]) {
 				i++; j++; k++;
 			}
 		}
+
+		for(i=0; i<pxh1->px_numfields+1; i++)
+			px_free(pxdoc1, l[i]);
+		px_free(pxdoc1, l);
+		px_free(pxdoc1, fields1);
+		px_free(pxdoc1, fields2);
 	}
 	/* }}} */
-
-#if 0
-	/* Check which fields shall be compared */
-	if(fieldregex) {
-		regex_t preg;
-		if(regcomp(&preg, fieldregex, REG_NOSUB|REG_EXTENDED|REG_ICASE)) {
-			fprintf(stderr, _("Could not compile regular expression to select fields."));
-			PX_close(pxdoc);
-			exit(1);
-		}
-		/* allocate memory for selected field array */
-		if((selectedfields = (char *) pxdoc->malloc(pxdoc, pxh->px_numfields, _("Could not allocate memory for array of selected fields."))) == NULL) {
-			PX_close(pxdoc);
-			exit(1);
-		}
-		memset(selectedfields, '\0', pxh->px_numfields);
-		pxf = pxh->px_fields;
-		for(i=0; i<pxh->px_numfields; i++) {
-			if(0 == regexec(&preg, pxf->px_fname, 0, NULL, 0)) {
-				selectedfields[i] = 1;
-			}
-			pxf++;
-		}
-	}
-#endif
 
 	/* Compare the data records only if the schemas has not differ {{{
 	 */
@@ -909,7 +1033,9 @@ int main(int argc, char *argv[]) {
 		char **lcs;
 		char *data1, *data2;
 		char **records1, **records2;
+		pxfield_t *pxf;
 		int recordsize, len, i, j, k;
+		int realrecsize1, realrecsize2; /* real record size of only selected fields */
 
 		if((l = (int **) pxdoc1->malloc(pxdoc1, (pxh1->px_numrecords+1)*sizeof(char *), _("Could not allocate memory lcs array."))) == NULL) {
 			PX_close(pxdoc1);
@@ -943,8 +1069,24 @@ int main(int argc, char *argv[]) {
 
 		/* Get all records of first database */
 		for(j=0; j<pxh1->px_numrecords; j++) {
+			int srcoffset;
 			if(NULL != PX_get_record(pxdoc1, j, data1)) {
 				records1[j] = data1;
+				if(fieldregex) {
+					realrecsize1 = 0;
+					srcoffset = 0;
+					pxf = pxh1->px_fields;
+					for(i=0; i<pxh1->px_numfields; i++) {
+						if(selectedfields1[i]) {
+							memcpy(&data1[realrecsize1], &data1[srcoffset], pxf[i].px_flen);
+							realrecsize1 += pxf[i].px_flen;
+						}
+						srcoffset += pxf[i].px_flen;
+					} 
+					memset(&data1[realrecsize1], 0, srcoffset-realrecsize1);
+				} else {
+					realrecsize2 = pxh2->px_recordsize;
+				}
 			} else {
 				fprintf(stderr, _("Couldn't get record number %d\n"), j);
 			}
@@ -953,8 +1095,24 @@ int main(int argc, char *argv[]) {
 
 		/* Get all records of second database */
 		for(j=0; j<pxh2->px_numrecords; j++) {
+			int srcoffset;
 			if(NULL != PX_get_record(pxdoc2, j, data2)) {
 				records2[j] = data2;
+				if(fieldregex) {
+					realrecsize2 = 0;
+					srcoffset = 0;
+					pxf = pxh2->px_fields;
+					for(i=0; i<pxh2->px_numfields; i++) {
+						if(selectedfields2[i]) {
+							memcpy(&data2[realrecsize2], &data2[srcoffset], pxf[i].px_flen);
+							realrecsize2 += pxf[i].px_flen;
+						}
+						srcoffset += pxf[i].px_flen;
+					} /* FIXME */
+					memset(&data2[realrecsize2], 0, srcoffset-realrecsize2);
+				} else {
+					realrecsize2 = pxh2->px_recordsize;
+				}
 			} else {
 				fprintf(stderr, _("Couldn't get record number %d\n"), j);
 			}
@@ -963,15 +1121,15 @@ int main(int argc, char *argv[]) {
 
 //		for(j=0; j<pxh1->px_numrecords; j++) {
 //			fprintf(outfp, "%d-0x%X\n", j, records1[j]);
-//			show_record(outfp, pxdoc1, pxh1, records1[j]);
+//			show_record(outfp, pxdoc1, pxh1, records1[j], selectedfields1);
 //		}
 
-		if(pxh1->px_recordsize != pxh2->px_recordsize) {
+		if(realrecsize1 != realrecsize2) {
 			fprintf(outfp, "Record size differs!!!");
 			fprintf(outfp, "\n");
 		}
 		/* Calculate the length of the common subsequence */
-		recordsize = min(pxh1->px_recordsize, pxh2->px_recordsize);
+		recordsize = min(realrecsize1, realrecsize2);
 		len = lcs_length(l, (void **) records1, pxh1->px_numrecords,
 		                    (void **) records2, pxh2->px_numrecords,
 		                    recordcmp, recordsize);
@@ -982,7 +1140,7 @@ int main(int argc, char *argv[]) {
 		fprintf(outfp, "\n");
 
 		/* get the sequence */
-		if((lcs = (char **) pxdoc1->malloc(pxdoc1, len * sizeof(char *), _("Could not allocate memory lcs array."))) == NULL) {
+		if((lcs = (char **) pxdoc1->malloc(pxdoc1, len * sizeof(char *), _("Could not allocate memory for lcs array."))) == NULL) {
 			PX_close(pxdoc1);
 			PX_close(pxdoc2);
 			exit(1);
@@ -1009,30 +1167,53 @@ int main(int argc, char *argv[]) {
 				if(k >= len || recordcmp(records2[j], lcs[k], recordsize)) {
 					notinlcs2 = 1;
 				}
-				if(notinlcs1 == 1 && notinlcs2 == 1 &&
-				   !recordcmp(records1[i], records2[j], 16)) {
+				/* Two records are assumed to be the same when its primary
+				 * key is identical.
+				 */
+				if(pkey && notinlcs1 == 1 && notinlcs2 == 1 &&
+				   !recordcmp(&records1[i][pkeystart1], &records2[j][pkeystart2], pkeylen1)) {
 					fprintf(outfp, "<\t");
-					show_record(outfp, pxdoc1, pxh1, records1[i]);
+					show_record(outfp, pxdoc1, pxh1, records1[i], selectedfields1);
 					fprintf(outfp, ">\t");
-					show_record(outfp, pxdoc2, pxh2, records2[j]);
+					show_record(outfp, pxdoc2, pxh2, records2[j], selectedfields2);
 //					show_record_diff(outfp, pxdoc1, pxh1, records1[i], pxdoc2, pxh2, records2[j]);
 					i++; j++;
-				} else if(notinlcs1 == 1) {
-					fprintf(outfp, "-\t");
-					show_record(outfp, pxdoc1, pxh1, records1[i++]);
-				} else if(notinlcs2 == 1) {
-					fprintf(outfp, "+\t");
-					show_record(outfp, pxdoc2, pxh2, records2[j++]);
+				} else {
+					if(notinlcs1 == 1) {
+						fprintf(outfp, "-\t");
+						show_record(outfp, pxdoc1, pxh1, records1[i++], selectedfields1);
+					}
+					if(notinlcs2 == 1) {
+						fprintf(outfp, "+\t");
+						show_record(outfp, pxdoc2, pxh2, records2[j++], selectedfields2);
+					}
 				}
 			} else {
 				i++; j++; k++;
 			}
 		}
 
+		/* Output all remaining records in first database */
+		while(i < pxh1->px_numrecords) {
+			fprintf(outfp, "-\t");
+			show_record(outfp, pxdoc1, pxh1, records1[i++], selectedfields1);
+		}
+
+		/* Output all remaining records in second database */
+		while(i < pxh2->px_numrecords) {
+			fprintf(outfp, "+\t");
+			show_record(outfp, pxdoc2, pxh2, records2[i++], selectedfields2);
+		}
+
 		px_free(pxdoc1, data1);
 		px_free(pxdoc1, records1);
 		px_free(pxdoc2, data2);
 		px_free(pxdoc2, records2);
+	} else {
+		if(schemasdiffer) {
+			fprintf(outfp, _("Schema already differs, will not compare records."));
+			fprintf(outfp, "\n");
+		}
 	}
 	/* }}} */
 
