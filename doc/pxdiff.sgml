@@ -71,6 +71,7 @@ manpage.1: manpage.sgml
       <arg><option>-s | --sort <replaceable></replaceable></option></arg>
       <arg><option>-v | --verbose <replaceable></replaceable></option></arg>
       <arg><option>--mode=MODE <replaceable></replaceable></option></arg>
+      <arg><option>--output-mode=MODE <replaceable></replaceable></option></arg>
       <arg><option>-o FILE | --output-file=FILE <replaceable></replaceable></option></arg>
       <arg><option>-k key | --primary-key=KEY <replaceable></replaceable></option></arg>
       <arg><option>-r ENCODING | --recode=ENCODING <replaceable></replaceable></option></arg>
@@ -196,6 +197,13 @@ manpage.1: manpage.sgml
         </listitem>
       </varlistentry>
       <varlistentry>
+        <term><option>--output-mode=MODE</option>
+        </term>
+        <listitem>
+          <para>Not yet implemented.</para>
+        </listitem>
+      </varlistentry>
+      <varlistentry>
         <term><option>-o FILE</option>
           <option>--output=FILE</option>
         </term>
@@ -246,15 +254,17 @@ manpage.1: manpage.sgml
 						behaviour is usefull if field data differs because of a different
 						code page. In case of databases without any character fields it is
 						save to compare the records even if the code page differs. This
-						option make sure that different code pages will not be treated as
-						different schemas.</para>
+						option makes sure that different code pages will not be treated as
+						different schemas. Use it with care!</para>
         </listitem>
       </varlistentry>
     </variablelist>
 
 		<para>The none optional parameters FILE1 and FILE2 are Paradox database
 	 	 files which shall be compared. The optional parameters PRI-INDEX1 and
-		 PRI-INDEX2 are the primary index files for the databases.</para>
+		 PRI-INDEX2 are the primary index files for the databases. The output
+		 of &dhpackage; will list all changes which are neccesary to transform
+		 the first data base into the second database.</para>
   </refsect1>
   <refsect1>
     <title>HOW DIFFERENCES ARE FOUND</title>
@@ -267,7 +277,8 @@ manpage.1: manpage.sgml
 			would use.</para>
 		<para>First of all, databases have a structure and records. Both must be
 		  compared. If the structure does not match it makes no sense to compare
-			the records. Secondly, databases should be considered equal, if both
+			the records unless the comparision is restricted to some fields common
+			to both databases. Secondly, databases should be considered equal, if both
 			databases contain the same records, disregarding its location in the
 			file. Third,
 			different records can be interpreted in two ways. They differ because
@@ -277,11 +288,13 @@ manpage.1: manpage.sgml
 			key to match the two records.</para>
 		<para>&dhpackage; tries to be as smart as possible, but it will not be
 		  succesful without some help. If you compare two databases make sure
-			to sort them by the same field, preferred by a unique field or the
+			to sort them by the same field, preferably by a unique field or the
 			primary key. Usually one will have to pass the primary index files
-			for both database. Sorted databases can easily be synchronised,
+			for both database or use the option --sort to sort both database before
+			calculating the difference. Sorted databases can easily be synchronised,
 			even if many
-			records has been deleted or added. If there is a primary key, then
+			records has been deleted or added.</para>
+		<para>If there is a primary key, then
 			specify its name with the --primary-key option. A primary key can be
 			used to tell if a record has been updated or if it is new or deleted.
 			In the output the two records will be marked with '&lt;' and '&gt;'
@@ -291,18 +304,23 @@ manpage.1: manpage.sgml
 			</para>
 		<para>Sometimes, one is not interessted in comparing a complete record but
 		  only some selected fields; especially if databases have different
-			structure. The option --fields can be used to pass a regular expression
-			to match the field names. Anyway, this may fail if the selected fields
+			structure and comparing whole records is not possible.
+			The option --fields can be used to pass a regular expression
+			to match the field names which shall be compared. Anyway, this may
+			fail if the selected fields
 			are not in the same order. There is currently no way to reorder the
 			fields, all you can do is to compare field sets which are in the same
 			sequence in both databases.</para>
 		<para>If --primary-key and --fields is used at the same time, then the
 		  primary key must be in the specified field set.</para>
+		<para>If you would like to compare all fields which are common in both
+		  databases, you can use the option --compare-common instead of passing
+			all fields with the --fields option.</para>
   </refsect1>
   <refsect1>
     <title>SEE ALSO</title>
 
-    <para>pxview(1), recode(1), iconv(1)</para>
+    <para>pxview(1)</para>
 
   </refsect1>
   <refsect1>
