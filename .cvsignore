@@ -1,0 +1,14 @@
+Makefile
+Makefile.in
+config.*
+configure
+intltool*
+missing
+mkinstalldirs
+stamp-h*
+build-stamp
+aclocal.m4
+depcomp
+install-sh
+pxdiff.spec
+libtool
