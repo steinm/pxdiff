@@ -13,8 +13,6 @@
 #define max(a,b) ((a)>(b) ? (a) : (b))
 #define min(a,b) ((a)<(b) ? (a) : (b))
 
-#define MEMORY_DEBUGGING 1
-
 #ifdef MEMORY_DEBUGGING
 #include <paradox-mp.h>
 #else
