@@ -73,7 +73,8 @@ manpage.1: manpage.sgml
       <arg><option>-k key | --primary-key=KEY <replaceable></replaceable></option></arg>
       <arg><option>-r ENCODING | --recode=ENCODING <replaceable></replaceable></option></arg>
       <arg><option>--fields=REGEX <replaceable></replaceable></option></arg>
-      <arg>FILE1 FILE2 PRI-INDEX1 PRI-INDEX2 </arg>
+      <arg>FILE1 FILE2</arg>
+			<arg>PRI-INDEX1 PRI-INDEX2</arg>
     </cmdsynopsis>
   </refsynopsisdiv>
   <refsect1>
@@ -89,9 +90,10 @@ manpage.1: manpage.sgml
       </para>
 		<para>Paradox database records are read as they are stored in the
 		  file. This could imply differences which result from a different
-			order of the records, though the database are identical. In such cases
+			order of the records, though the databases are identical. In such cases
 			you will have to use a primary index for both files and make sure
-			both databases are sortet equally.</para>
+			both databases are sorted equally. For more information check the
+			section on 'How differences are found'.</para>
 		<para>A similar problem occurs when the two databases has the same fields
 		  but in different order. Such cases cannot be handled reasonably.</para>
   </refsect1>
@@ -133,8 +135,8 @@ manpage.1: manpage.sgml
           <option>--schema</option>
         </term>
         <listitem>
-          <para>Compare schema and output the difference. Schema comparision
-					  will also take place if you only pass --data, but schema difference
+          <para>Compare schemas and output the differences. Schema comparison
+					  will also take place if you only pass --data, but schema differences
 						will not be displayed.</para>
         </listitem>
       </varlistentry>
@@ -143,9 +145,9 @@ manpage.1: manpage.sgml
           <option>--data</option>
         </term>
         <listitem>
-          <para>Compare data and output the difference. Comparing data also
-					  implies to compare the schema first. If the schema does not match
-						the data comparision will be not be executed. If you would like
+          <para>Compare records and output the differences. Comparing data also
+					  implies to compare the schema first. If the schemas do not match
+						the data comparison will be not be executed. If you would like
 						to compare two databases which have some fields in common but have
 						an overall different schema, you can specify the option --fields
 						to select just the fields in common.</para>
@@ -156,18 +158,17 @@ manpage.1: manpage.sgml
           <option>--verbose</option>
         </term>
         <listitem>
-          <para>Output some more information from the header. This option is only
-					 needed if you want see some internal information which are usually
-					 not of any interessed.</para>
+          <para>Output some more information. Currently this has no effect.
+					  </para>
         </listitem>
       </varlistentry>
       <varlistentry>
         <term><option>--mode=MODE</option>
         </term>
         <listitem>
-          <para>Sets the compare mode. This options provides a different way
-					 to set what shall be compared. --mode=data is equivalent to --data,
-					 and --mode=schema to --schema.</para>
+          <para>Sets the compare mode. This option provides a different way
+					 to set what is supposed to be compared. --mode=data is equivalent
+					 to --data, and --mode=schema to --schema.</para>
         </listitem>
       </varlistentry>
       <varlistentry>
@@ -175,16 +176,7 @@ manpage.1: manpage.sgml
           <option>--output=FILE</option>
         </term>
         <listitem>
-          <para>Write difference into given file instead of stdout.</para>
-        </listitem>
-      </varlistentry>
-      <varlistentry>
-        <term><option>-n FILE</option>
-          <option>--primary-index-file=FILE</option>
-        </term>
-        <listitem>
-          <para>Read the primary index from file. This option is only valid
-					  it you are reading a database file.</para>
+          <para>Write differences into given file instead of stdout.</para>
         </listitem>
       </varlistentry>
       <varlistentry>
@@ -196,7 +188,8 @@ manpage.1: manpage.sgml
 					 have to specify the encoding similar to the
 					 <application>recode</application> command, by passing only the part
 					 on the right hand side of the `..' of what you usually pass to
-					 recode.</para>
+					 recode. This option will only imfluence the output and not the
+					 comparison.</para>
         </listitem>
       </varlistentry>
       <varlistentry>
@@ -207,19 +200,20 @@ manpage.1: manpage.sgml
 					 an extended regular expression.
 					 "field1|field23$" will select all fields whose name
 					 contains "field1" or end in "field23". If this option is not used
-					 als fields will be compared. The field name is case insensitive.
-					 It is very useful if you would like to compare two database which
+					 all fields will be compared. The field name is case insensitive.
+					 The option is very useful if you would like to compare two database which
 					 has different schema but some fields in common or to restricted the
-					 comparision on some fields to isolate certain differences.</para>
+					 comparison on some fields to isolate certain differences.</para>
         </listitem>
       </varlistentry>
     </variablelist>
 
 		<para>The none optional parameters FILE1 and FILE2 are Paradox database
-	 	 files which shall be compared.</para>
+	 	 files which shall be compared. The optional parameters PRI-INDEX1 and
+		 PRI-INDEX2 are the primary index files for the databases.</para>
   </refsect1>
   <refsect1>
-    <title>HOW DIFFERENCE ARE FOUND</title>
+    <title>HOW DIFFERENCES ARE FOUND</title>
 
 		<para>&dhpackage; ist somehow similar to the diff(1) program. It uses
 		  the same algorithmn and has as similar output. Anyway, since comparing
@@ -250,11 +244,11 @@ manpage.1: manpage.sgml
 			a leading '&gt;'.
 			</para>
 		<para>Sometimes, one is not interessted in comparing a complete record but
-		  only in some selected fields; especially if databases have different
+		  only some selected fields; especially if databases have different
 			structure. The option --fields can be used to pass a regular expression
 			to match the field names. Anyway, this may fail if the selected fields
 			are not in the same order. There is currently no way to reorder the
-			fields, all you can do is comparing field sets which are in the same
+			fields, all you can do is to compare field sets which are in the same
 			sequence in both databases.</para>
 		<para>If --primary-key and --fields is used at the same time, then the
 		  primary key must be in the specified field set.</para>
