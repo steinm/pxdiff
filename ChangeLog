@@ -1,4 +1,5 @@
 Version 0.0.3
+  - added option --with-memory-debug to configure
 	- fixed freeing of memory
 	- make field compare if records differ
 	- Different recordsize was not recognized
