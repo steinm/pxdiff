@@ -1184,16 +1184,16 @@ int show_record_diff(FILE *outfp, pxdoc_t *pxdoc1, pxhead_t *pxh1, char *data1, 
 						if((ret2 = PX_get_data_alpha(pxdoc2, &data2[offset2], pxf2[j].px_flen, &value2)) >= 0) {
 							if((ret1 > 0) && (ret2 > 0) && strncmp(value1, value2, min(pxf1[i].px_flen, pxf2[j].px_flen))) {
 								fprintf(outfp, "%s%c", pxf1[i].px_fname, delimiter);
-								fprintf(outfp, "'%s'%c", value1, delimiter);
-								fprintf(outfp, "'%s'\n", value2);
+								fprintf(outfp, "%s%c", value1, delimiter);
+								fprintf(outfp, "%s\n", value2);
 								fccount++;
 							} else if((ret1 > 0) && (ret2 == 0)) {
 								fprintf(outfp, "%s%c", pxf1[i].px_fname, delimiter);
-								fprintf(outfp, "'%s'%cNULL\n", value1, delimiter);
+								fprintf(outfp, "%s%cNULL\n", value1, delimiter);
 								fccount++;
 							} else if((ret2 > 0) && (ret1 == 0)) {
 								fprintf(outfp, "%s%c", pxf1[i].px_fname, delimiter);
-								fprintf(outfp, "NULL%c'%s'\n", delimiter, value2);
+								fprintf(outfp, "NULL%c%s\n", delimiter, value2);
 								fccount++;
 							}
 							pxdoc1->free(pxdoc2, value2);
