@@ -1,3 +1,6 @@
+Version 0.0.8
+	- fields of type Timestamp are handled propperly
+
 Version 0.0.7
 	- fixed several errors when output mode is sql and no fields are
 	  explicitly selected.
@@ -29,7 +32,7 @@ Version 0.0.4
 	- fixed configure option --with-memory-debug
 
 Version 0.0.3
-  - added option --with-memory-debug to configure
+	- added option --with-memory-debug to configure
 	- fixed freeing of memory
 	- make field compare if records differ
 	- different recordsize was not recognized

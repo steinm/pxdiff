@@ -1,3 +1,9 @@
+pxdiff (0.0.8-1) unstable; urgency=low
+
+  * New upstream version.
+
+ -- Uwe Steinmann <steinm@debian.org>  Wed, 22 Dec 2004 15:42:38 +0100
+
 pxdiff (0.0.7-1) unstable; urgency=low
 
   * New upstream version.
