@@ -1299,7 +1299,10 @@ int main(int argc, char *argv[]) {
 
 		/* Sort to the data arrays */
 		if(sortdata) {
-			qsort_len = realrecsize1;
+			if(pkey)
+				qsort_len = pkeylen1;
+			else
+				qsort_len = realrecsize1;
 			qsort((void *)records1, pxh1->px_numrecords, sizeof(char *), qsort_comp_records);
 			qsort((void *)records2, pxh2->px_numrecords, sizeof(char *), qsort_comp_records);
 		}
