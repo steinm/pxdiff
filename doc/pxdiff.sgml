@@ -73,12 +73,12 @@ manpage.1: manpage.sgml
       <arg><option>--mode=MODE <replaceable></replaceable></option></arg>
       <arg><option>--output-mode=MODE <replaceable></replaceable></option></arg>
       <arg><option>-o FILE | --output-file=FILE <replaceable></replaceable></option></arg>
-      <arg><option>-k key | --primary-key=KEY <replaceable></replaceable></option></arg>
+      <arg><option>-k NAME | --primary-key=NAME <replaceable></replaceable></option></arg>
       <arg><option>-r ENCODING | --recode=ENCODING <replaceable></replaceable></option></arg>
       <arg><option>--fields=REGEX <replaceable></replaceable></option></arg>
       <arg><option>--compare-common <replaceable></replaceable></option></arg>
       <arg><option>--disregard-codepage <replaceable></replaceable></option></arg>
-      <arg>FILE1 FILE2</arg>
+      <arg>DATABASE1 DATABASE2</arg>
 			<arg>PRI-INDEX1 PRI-INDEX2</arg>
     </cmdsynopsis>
   </refsynopsisdiv>
@@ -92,18 +92,20 @@ manpage.1: manpage.sgml
 		  difference. It can both find differences in the table structure
 			and the data records. Records are always compared as a whole and
 			if they differ, the fields will be compared too. Records must be
-			of the same length to be comparable.
+			of the same length to be comparable. &dhpackage; returns 1 if the
+			databases differ, 2 if an error occured and 0 otherwise.
       </para>
 		<para>Paradox database records are read as they are stored in the
 		  file. This could imply differences which result from a different
 			order of the records, though the databases are identical. In such a case
 			you will have to use a primary index for both files and make sure
 			both databases are sorted equally or use the option --sort to sort
-			the databases before comparison. For more information check the
+			the databases before comparison. The records will be sorted by the
+			first n fields. For more information check the
 			section on 'How differences are found'.</para>
-		<para>A similar problem occurs when the two databases has the same fields
+		<para>A similar problem occurs when the two databases have the same fields
 		  but in different order. Such a case cannot be handled reasonably. It
-			would require to rearrange fields which is not possible currently.</para>
+			would require to rearrange fields which is currently not possible.</para>
 		<para>&dhpackage; may also be confused by different code pages. If
 		  character fields contain identical characters but with different
 			encoding, then this will be interpreted as different field values.
@@ -162,7 +164,7 @@ manpage.1: manpage.sgml
 						the data comparison will be not be executed. If you would like
 						to compare two databases which have some fields in common but have
 						an overall different schema, you can specify the option --fields
-						to select just the fields in common.</para>
+						to select just the fields that shall be compared.</para>
         </listitem>
       </varlistentry>
       <varlistentry>
@@ -174,7 +176,8 @@ manpage.1: manpage.sgml
 					  option is useful if you would like to compare two database files
 						which have many records in common but not in the same order.
 						If a primary index field is given, it will be the only field used
-						for sorting.
+						for sorting. If no primary index field is given, then the whole
+						record starting at the first field will be used for sorting.
 						</para>
         </listitem>
       </varlistentry>
@@ -191,7 +194,7 @@ manpage.1: manpage.sgml
         <term><option>--mode=MODE</option>
         </term>
         <listitem>
-          <para>Sets the comparision mode. This option provides a different way
+          <para>Sets the comparison mode. This option provides a different way
 					 to set what is to be compared. --mode=data is equivalent
 					 to --data, and --mode=schema to --schema.</para>
         </listitem>
@@ -200,7 +203,13 @@ manpage.1: manpage.sgml
         <term><option>--output-mode=MODE</option>
         </term>
         <listitem>
-          <para>Not yet implemented.</para>
+          <para>Sets the format for reporting the differences. Possible values
+					  are 'plain', 'sql' or 'stat'. 'plain' is the default mode as
+						described below. 'sql' will report differences as sql statements
+						which are to apply on the first database to get the second
+						database. 'stat' will only output the number of lines deleted,
+						inserted, updated, and unchanged.
+						</para>
         </listitem>
       </varlistentry>
       <varlistentry>
@@ -208,7 +217,7 @@ manpage.1: manpage.sgml
           <option>--output=FILE</option>
         </term>
         <listitem>
-          <para>Write differences into given file instead of stdout.</para>
+          <para>Write output into given file instead of stdout.</para>
         </listitem>
       </varlistentry>
       <varlistentry>
@@ -220,8 +229,11 @@ manpage.1: manpage.sgml
 					 have to specify the encoding similar to the
 					 <application>recode</application> command, by passing only the part
 					 on the right hand side of the `..' of what you usually pass to
-					 recode. This option will only influence the output and not the
-					 comparison itself.</para>
+					 recode. This option will only influence the output and the
+					 comparison of fields if the option --show-record-diff is given but
+					 not the comparison of the complete record itself. Two records
+					 are different due to a different encoding, which may not be visible
+					 when outputing the field differences.</para>
         </listitem>
       </varlistentry>
       <varlistentry>
@@ -233,27 +245,33 @@ manpage.1: manpage.sgml
 					 "field1|field23$" will select all fields whose name
 					 contains "field1" or end in "field23". If this option is not used
 					 all fields will be compared. The field name is case insensitive.
-					 The option is very useful if you would like to compare two database which
-					 have different schemas but some fields in common or to restricted the
-					 comparison on some fields to isolate certain differences.</para>
+					 The option is very useful if you would like to compare two database
+					 which have different schemas but some fields in common or to
+					 restricted the comparison on some fields to isolate certain
+					 differences. A primary key must be part of the field
+					 specification.</para>
         </listitem>
       </varlistentry>
       <varlistentry>
         <term><option>--compare-common</option>
         </term>
         <listitem>
-          <para>Compare only those fields which are common to both databases.</para>
+          <para>Compare only those fields which are common to both databases.
+					  This is a convenient option if the regular expression to select
+						all common fields would be to complicated to find.</para>
         </listitem>
       </varlistentry>
       <varlistentry>
         <term><option>--disregard-codepage</option>
         </term>
         <listitem>
-          <para>Usually a different code page will disable the comparision of
-					  records because it is considered a difference in the schema. This
+          <para>Usually a different code page will disable the comparison of
+					  records, because it is considered a difference in the schema. This
 						behaviour is usefull if field data differs because of a different
-						code page. In case of databases without any character fields it is
-						save to compare the records even if the code page differs. This
+						code pages. In case of databases without any character fields it is
+						save to compare the records even if the code page differs. The same
+						is true for database comparison with a primary key which itself
+						will not differ due to a different encoding. This
 						option makes sure that different code pages will not be treated as
 						different schemas. Use it with care!</para>
         </listitem>
@@ -277,7 +295,7 @@ manpage.1: manpage.sgml
 			would use.</para>
 		<para>First of all, databases have a structure and records. Both must be
 		  compared. If the structure does not match it makes no sense to compare
-			the records unless the comparision is restricted to some fields common
+			the records unless the comparison is restricted to some fields common
 			to both databases. Secondly, databases should be considered equal, if both
 			databases contain the same records, disregarding its location in the
 			file. Third,
@@ -292,15 +310,19 @@ manpage.1: manpage.sgml
 			primary key. Usually one will have to pass the primary index files
 			for both database or use the option --sort to sort both database before
 			calculating the difference. Sorted databases can easily be synchronised,
-			even if many
-			records has been deleted or added.</para>
+			even if many records has been deleted or added.</para>
+  </refsect1>
+  <refsect1>
+    <title>HINTS</title>
+
 		<para>If there is a primary key, then
 			specify its name with the --primary-key option. A primary key can be
 			used to tell if a record has been updated or if it is new or deleted.
-			In the output the two records will be marked with '&lt;' and '&gt;'
+			In plain output mode the two records will be marked with '&lt;' and '&gt;'
 			instead of '+' and '-'. A '&lt;' means that this record in the first
 			database will be replaced by the record in the next line, which has
-			a leading '&gt;'.
+			a leading '&gt;'. In sql output mode, update statements will be used
+			instead of delete and insert statements.
 			</para>
 		<para>Sometimes, one is not interessted in comparing a complete record but
 		  only some selected fields; especially if databases have different
