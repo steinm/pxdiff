@@ -86,20 +86,25 @@ manpage.1: manpage.sgml
 
     <para>&dhpackage; reads two Paradox database files and calculates the
 		  difference. It can both find differences in the table structure
-			and the data records. Records are always treated as a single unit.
-			Differences within records on a field bases will not be reported.
+			and the data records. Records are always compared as a whole and
+			if they differ, the fields will be compared too. Records must be
+			of the same length to be comparable.
       </para>
 		<para>Paradox database records are read as they are stored in the
 		  file. This could imply differences which result from a different
-			order of the records, though the databases are identical. In such cases
+			order of the records, though the databases are identical. In such a case
 			you will have to use a primary index for both files and make sure
-			both databases are sorted equally. For more information check the
+			both databases are sorted equally or use the option --sort to sort
+			the databases before comparison. For more information check the
 			section on 'How differences are found'.</para>
 		<para>A similar problem occurs when the two databases has the same fields
-		  but in different order. Such cases cannot be handled reasonably.</para>
+		  but in different order. Such a case cannot be handled reasonably. It
+			would require to rearrange fields which is not possible currently.</para>
 		<para>&dhpackage; may also be confused by different code pages. If
-		  characters fields contain identical characters but with different
-			encoding, then this will be interpreted as a different field.</para>
+		  character fields contain identical characters but with different
+			encoding, then this will be interpreted as different field values.
+			Recoding of field data is currently not supported because it results
+			into a huge speed penalty.</para>
   </refsect1>
   <refsect1>
     <title>OPTIONS</title>
@@ -165,8 +170,8 @@ manpage.1: manpage.sgml
           <para>Sort both input files before calculating the difference. This
 					  option is useful if you would like to compare two database files
 						which have many records in common but not in the same order.
-						If a primary index field is given, the only this field is used
-						for sorting which is likely to accelerate sorting.
+						If a primary index field is given, it will be the only field used
+						for sorting.
 						</para>
         </listitem>
       </varlistentry>
@@ -183,8 +188,8 @@ manpage.1: manpage.sgml
         <term><option>--mode=MODE</option>
         </term>
         <listitem>
-          <para>Sets the compare mode. This option provides a different way
-					 to set what is supposed to be compared. --mode=data is equivalent
+          <para>Sets the comparision mode. This option provides a different way
+					 to set what is to be compared. --mode=data is equivalent
 					 to --data, and --mode=schema to --schema.</para>
         </listitem>
       </varlistentry>
@@ -205,8 +210,8 @@ manpage.1: manpage.sgml
 					 have to specify the encoding similar to the
 					 <application>recode</application> command, by passing only the part
 					 on the right hand side of the `..' of what you usually pass to
-					 recode. This option will only imfluence the output and not the
-					 comparison.</para>
+					 recode. This option will only influence the output and not the
+					 comparison itself.</para>
         </listitem>
       </varlistentry>
       <varlistentry>
@@ -219,7 +224,7 @@ manpage.1: manpage.sgml
 					 contains "field1" or end in "field23". If this option is not used
 					 all fields will be compared. The field name is case insensitive.
 					 The option is very useful if you would like to compare two database which
-					 has different schema but some fields in common or to restricted the
+					 have different schemas but some fields in common or to restricted the
 					 comparison on some fields to isolate certain differences.</para>
         </listitem>
       </varlistentry>
@@ -235,7 +240,9 @@ manpage.1: manpage.sgml
 		<para>&dhpackage; ist somehow similar to the diff(1) program. It uses
 		  the same algorithmn and has as similar output. Anyway, since comparing
 			databases and text files is very different, &dhpackage; takes a more
-			sophisticated approach to find differences.</para>
+			sophisticated approach to find differences, though the algorithmn is
+			much less optimized and needs more memory then an optimzed version
+			would use.</para>
 		<para>First of all, databases have a structure and records. Both must be
 		  compared. If the structure does not match it makes no sense to compare
 			the records. Secondly, databases should be considered equal, if both
@@ -252,9 +259,9 @@ manpage.1: manpage.sgml
 			primary key. Usually one will have to pass the primary index files
 			for both database. Sorted databases can easily be synchronised,
 			even if many
-			records has been delete or added. If there is a primary key, then
+			records has been deleted or added. If there is a primary key, then
 			specify its name with the --primary-key option. A primary key can be
-			used to tell if a record has been updated or if its new or deleted.
+			used to tell if a record has been updated or if it is new or deleted.
 			In the output the two records will be marked with '&lt;' and '&gt;'
 			instead of '+' and '-'. A '&lt;' means that this record in the first
 			database will be replaced by the record in the next line, which has
