@@ -1002,11 +1002,11 @@ int main(int argc, char *argv[]) {
 		i = 0; j = 0; k = 0;
 		while(i < numfields1 && j < numfields2) {
 			if(fieldcmp(fields1[i], fields2[j], 0)) {
-				if(fieldcmp(fields1[i], lcs[k], 0)) {
+				if(k >= len || fieldcmp(fields1[i], lcs[k], 0)) {
 					fprintf(outfp, "- ");
 					show_field(outfp, fields1[i++]);
 				}
-				if(fieldcmp(fields2[j], lcs[k], 0)) {
+				if(k >= len || fieldcmp(fields2[j], lcs[k], 0)) {
 					fprintf(outfp, "+ ");
 					show_field(outfp, fields2[j++]);
 				}
@@ -1085,7 +1085,7 @@ int main(int argc, char *argv[]) {
 					} 
 					memset(&data1[realrecsize1], 0, srcoffset-realrecsize1);
 				} else {
-					realrecsize2 = pxh2->px_recordsize;
+					realrecsize1 = pxh2->px_recordsize;
 				}
 			} else {
 				fprintf(stderr, _("Couldn't get record number %d\n"), j);
@@ -1125,7 +1125,7 @@ int main(int argc, char *argv[]) {
 //		}
 
 		if(realrecsize1 != realrecsize2) {
-			fprintf(outfp, "Record size differs!!!");
+			fprintf(outfp, "Record size differs: %d != %d", realrecsize1, realrecsize2);
 			fprintf(outfp, "\n");
 		}
 		/* Calculate the length of the common subsequence */
