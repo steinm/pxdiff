@@ -92,7 +92,7 @@ else
 	if test "$try_gsf" = "true"; then
 		AC_CHECK_LIB(gsf-1, gsf_input_read,
 			GSF_LIBDIR="$GSF_LIBDIR -lgsf-1",
-			AC_MSG_RESULT([libgsf-1 not found]),
+			AC_MSG_ERROR([libgsf-1 not found]),
 			"$GSF_LIBDIR")
 
 		GSF_LIBS=-lgsf-1
