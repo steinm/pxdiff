@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 0.0.1\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2003-11-05 16:17+0100\n"
+"POT-Creation-Date: 2003-11-06 18:46+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: Uwe Steinmann <uwe@steinmann.cx>\n"
 "Language-Team: DE <uwe@steinmann.cx>\n"
@@ -16,60 +16,58 @@ msgstr ""
 "Content-Type: text/plain; charset=ISO-8859-1\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/main.c:446
+#: src/main.c:447
 #, c-format
 msgid "Version: %s %s http://sourceforge.net/projects/pxlib"
 msgstr "Version: %s %s http://sourceforge.net/projects/pxlib"
 
-#: src/main.c:448
+#: src/main.c:449
 msgid "Copyright: Copyright (C) 2003 Uwe Steinmann <uwe@steinmann.cx>"
 msgstr "Copyright: Copyright (C) 2003 Uwe Steinmann <uwe@steinmann.cx>"
 
-#: src/main.c:450
+#: src/main.c:451
 #, c-format
 msgid "%s compares two paradox databases."
 msgstr "%s vergleich zwei Paradox Datenbanken."
 
-#: src/main.c:452
+#: src/main.c:453
 #, c-format
 msgid "Usage: %s [OPTIONS] FILE1 FILE2"
 msgstr "Aufruf: %s [OPTION] DATEI1 DATEI2"
 
-#: src/main.c:454
+#: src/main.c:455
 msgid "Options:"
 msgstr "Optionen:"
 
-#: src/main.c:456
+#: src/main.c:457
 msgid "  -h, --help          this usage information."
 msgstr "  -h, --help          diese Hilfe."
 
-#: src/main.c:458
+#: src/main.c:459
 msgid "  -v, --verbose       be more verbose."
 msgstr "  -v, --verbose       mehr Informationen anzeigen"
 
-#: src/main.c:460
-msgid "  --mode=MODE         set output mode (csv, sql, or schema)."
-msgstr ""
-
-#: src/main.c:462
+#: src/main.c:461
 msgid "  -o, --output-file=FILE output data into file instead of stdout."
 msgstr "  -o, --output-file=DATEI schreibe Ausgabe in Datei statt nach stdout."
 
-#: src/main.c:464
+#: src/main.c:463
 msgid "  -n, --primary-index-file=FILE read primary index from file."
-msgstr ""
+msgstr "  -n, --primary-index-file=DATEI lese Primärindex aus Datei."
 
-#: src/main.c:466
+#: src/main.c:465
 msgid "  -r, --recode=ENCODING sets the target encoding."
 msgstr "  -r, --recode=ENCODING setzt Zielkodierung"
 
-#: src/main.c:468
+#: src/main.c:467
 msgid "  --fields=REGEX      extended regular expression to select fields."
 msgstr ""
+"  --fields=REGEX      erweiterter regulärer Ausdruck zur Auswahl von Feldern."
 
-#: src/main.c:472
+#: src/main.c:471
 msgid "  --use-gsf           use gsf library to read input file."
 msgstr ""
+"  --use-gsf           benutze gsf-Bibliothek zum Lesen der Eingabedatei."
 
 #: src/main.c:480
 msgid "libpx uses librecode for recoding."
@@ -81,7 +79,7 @@ msgstr "libpx benutzt iconv zum reencodieren."
 
 #: src/main.c:486
 msgid "libpx has no support for recoding."
-msgstr ""
+msgstr "libpx unterstützt nicht das reencodieren."
 
 #: src/main.c:491
 msgid "libpx has been compiled for big endian architecture."
@@ -89,12 +87,12 @@ msgstr "libpx unterstützt nicht das reencodieren."
 
 #: src/main.c:493
 msgid "libpx has been compiled for little endian architecture."
-msgstr ""
+msgstr "libpx wurde für Architekturen mit little endian übersetzt."
 
 #: src/main.c:495
 #, c-format
 msgid "libpx has gsf support: %s"
-msgstr "libpx wurde für Architekturen mit little endian übersetzt."
+msgstr "libpx hat Unterstützung für die gsf-Bibliothek: %s"
 
 #: src/main.c:495
 msgid "Yes"
@@ -111,7 +109,7 @@ msgstr "libpx ist Version: %d.%d.%d"
 
 #: src/main.c:634
 msgid "You must at least specify the files to compare."
-msgstr ""
+msgstr "Sie müssen mindestens die beiden zu vergleichenden Dateien angeben."
 
 #: src/main.c:649
 msgid "Could not open output file."
@@ -119,47 +117,47 @@ msgstr "Konnte Ausgabedate nicht öffnen."
 
 #: src/main.c:656 src/main.c:662
 msgid "Could not create new paradox instance."
-msgstr ""
+msgstr "Konnte eine neue Paradox-Instanz nicht anlegen."
 
 #: src/main.c:681
 msgid "Could not open gsf input file."
-msgstr ""
+msgstr "Konnte Eingabedatei mit gsf-Bibliothek nicht öffnen."
 
 #: src/main.c:690
 msgid "Could not open input file."
-msgstr ""
+msgstr "Konnte Eingabedatei nicht öffnen."
 
 #: src/main.c:697
 msgid "Could not open first input file."
-msgstr ""
+msgstr "Konnte erste Eingabedatei nicht öffnen."
 
 #: src/main.c:702
 msgid "Could not open second input file."
-msgstr ""
+msgstr "Konnte zweite Eingabedatei nicht öffnen."
 
 #: src/main.c:713
 msgid "Could not open primary index to first file."
-msgstr ""
+msgstr "Konnte die Primärindexdatei nicht öffnen."
 
 #: src/main.c:718
 msgid "Could not read primary index to first file."
-msgstr ""
+msgstr "Konnte die Primärindexdatei der ersten Datei nicht lesen."
 
 #: src/main.c:723
 msgid "Could not add primary index to first file."
-msgstr ""
+msgstr "Konnte den Primärindex nicht der ersten Datei hinzufügen."
 
 #: src/main.c:732
 msgid "Could not open primary index to second file."
-msgstr ""
+msgstr "Konnte die Primärindexdatei der zweiten Datei nicht lesen."
 
 #: src/main.c:737
 msgid "Could not read primary index to second file."
-msgstr ""
+msgstr "Konnte die Primärindexdatei der zweiten Datei nicht lesen."
 
 #: src/main.c:742
 msgid "Could not add primary index to second file."
-msgstr ""
+msgstr "Konnte den Primärindex nicht der zweiten Datei hinzufügen."
 
 #: src/main.c:764
 #, c-format
@@ -225,22 +223,22 @@ msgstr "+Code Page: %d"
 #: src/main.c:804 src/main.c:810 src/main.c:818 src/main.c:826 src/main.c:848
 #: src/main.c:914 src/main.c:919 src/main.c:985
 msgid "Could not allocate memory lcs array."
-msgstr ""
+msgstr "Konnte Speicher für lcs-Array nicht allozieren."
 
 #: src/main.c:885
 msgid "Could not compile regular expression to select fields."
-msgstr ""
+msgstr "Konnte regulären Ausdruck nicht übersetzen."
 
 #. allocate memory for selected field array
 #: src/main.c:890
 msgid "Could not allocate memory for array of selected fields."
-msgstr ""
+msgstr "Konnte Speicher für Array der selektierten Felder nicht allozieren."
 
 #: src/main.c:925 src/main.c:929 src/main.c:933 src/main.c:938
 msgid "Could not allocate memory for record."
-msgstr ""
+msgstr "Konnte Speicher für Datensatz nicht allozieren."
 
 #: src/main.c:949 src/main.c:959
 #, c-format
 msgid "Couldn't get record number %d\n"
-msgstr ""
+msgstr "Konnte auf Datensatz Nummer %d nicht zugreifen.\n"
