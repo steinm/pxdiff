@@ -1,3 +1,6 @@
+Version 0.0.5
+	- records at the end of database 2 are being taken into account
+
 Version 0.0.4
 	- updated man page
 	- show field difference even if one field is NULL

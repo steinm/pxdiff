@@ -1457,9 +1457,9 @@ int main(int argc, char *argv[]) {
 		}
 
 		/* Output all remaining records in second database */
-		while(i < pxh2->px_numrecords) {
+		while(j < pxh2->px_numrecords) {
 			fprintf(outfp, "+\t");
-			show_record(outfp, pxdoc2, pxh2, records2[i++], selectedfields2);
+			show_record(outfp, pxdoc2, pxh2, records2[j++], selectedfields2);
 		}
 
 		for(i=0; i<pxh1->px_numrecords+1; i++)
