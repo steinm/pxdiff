@@ -316,7 +316,7 @@ void show_record(FILE *outfp, pxdoc_t *pxdoc, pxhead_t *pxh, char *data, int *se
 /* }}} */
 
 /* show_record_diff() {{{
- * Outputs the difference of two records. The must have identical
+ * Outputs the difference of two records. They must have identical
  * size and structure.
  * The function can handle records with common fields being at different
  * positions in the table structure but not if the common fields have a
@@ -331,10 +331,10 @@ void show_record(FILE *outfp, pxdoc_t *pxdoc, pxhead_t *pxh, char *data, int *se
  * 3. field2        ---
  * 
  * In such a case the algorithm will compare the fields at position 0.
- * Since file1[0] is not set the index (i) will be incremented. The other
- * index (j) remains unchanged. Now file[1] and file2[0] will be compared.
- * They are equal and i and j will be incremented. file[2] and file[1]
- * are not equal. Incrementing i and comparing file1[3] and file2[1] will
+ * Since field1[0] is not set the index (i) will be incremented. The other
+ * index (j) remains unchanged. Now field[1] and field2[0] will be compared.
+ * They are equal and i and j will be incremented. field[2] and field[1]
+ * are not equal. Incrementing i and comparing field1[3] and field2[1] will
  * again be successfull. Since i is not at its upper limit it will not be
  * incremented any more. If j ist also at its upper limit the while loop
  * will quit.
@@ -533,7 +533,7 @@ void usage(char *progname) {
 	printf("\n");
 	printf(_("  -o, --output-file=FILE output data into file instead of stdout."));
 	printf("\n");
-	printf(_("  -n, --primary-key=FIELD use field as primary key."));
+	printf(_("  -k, --primary-key=FIELD use field as primary key."));
 	printf("\n");
 	printf(_("  -r, --recode=ENCODING sets the target encoding."));
 	printf("\n");
@@ -632,6 +632,7 @@ int main(int argc, char *argv[]) {
 			{"output-file", 1, 0, 'o'},
 			{"help", 0, 0, 'h'},
 			{"fields", 1, 0, 'f'},
+			{"sort", 0, 0, 's'},
 			{"mode", 1, 0, 4},
 			{"use-gsf", 0, 0, 8},
 			{"primary-key", 1, 0, 'k'},
