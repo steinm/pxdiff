@@ -431,6 +431,7 @@ void show_record_diff(FILE *outfp, pxdoc_t *pxdoc1, pxhead_t *pxh1, char *data1,
 	fprintf(outfp, "\n");
 }
 /* }}} */
+
 /* errorhandler() {{{
  */
 void errorhandler(pxdoc_t *p, int error, const char *str, void *data) {
@@ -457,8 +458,6 @@ void usage(char *progname) {
 	printf("\n");
 	printf(_("  -v, --verbose       be more verbose."));
 	printf("\n");
-	printf(_("  --mode=MODE         set output mode (csv, sql, or schema)."));
-	printf("\n");
 	printf(_("  -o, --output-file=FILE output data into file instead of stdout."));
 	printf("\n");
 	printf(_("  -n, --primary-index-file=FILE read primary index from file."));
@@ -473,6 +472,7 @@ void usage(char *progname) {
 		printf("\n");
 	}
 #endif
+	printf("\n");
 
 	recode = PX_has_recode_support();
 	switch(recode) {
@@ -486,16 +486,16 @@ void usage(char *progname) {
 			printf(_("libpx has no support for recoding."));
 			break;
 	}
-	printf("\n\n");
+	printf("\n");
 	if(PX_is_bigendian())
 		printf(_("libpx has been compiled for big endian architecture."));
 	else
 		printf(_("libpx has been compiled for little endian architecture."));
-	printf("\n\n");
+	printf("\n");
 	printf(_("libpx has gsf support: %s"), PX_has_gsf_support() == 1 ? _("Yes") : _("No"));
-	printf("\n\n");
+	printf("\n");
 	printf(_("libpx has version: %d.%d.%d"), PX_get_majorversion(), PX_get_minorversion(), PX_get_subminorversion());
-	printf("\n\n");
+	printf("\n");
 }
 /* }}} */
 
