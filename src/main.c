@@ -583,6 +583,8 @@ void usage(char *progname) {
 	printf("\n\n");
 	printf(_("  -h, --help          this usage information."));
 	printf("\n");
+	printf(_("  --version           show version information."));
+	printf("\n");
 	printf(_("  -v, --verbose       be more verbose."));
 	printf("\n");
 	printf(_("  -d, --data          compare data."));
@@ -698,6 +700,7 @@ int main(int argc, char *argv[]) {
 			{"mode", 1, 0, 4},
 			{"use-gsf", 0, 0, 8},
 			{"primary-key", 1, 0, 'k'},
+			{"version", 0, 0, 11},
 			{0, 0, 0, 0}
 		};
 		c = getopt_long (argc, argv, "ivtdsf:r:o:k:h",
@@ -719,6 +722,10 @@ int main(int argc, char *argv[]) {
 				break;
 			case 'h':
 				usage(progname);
+				exit(0);
+				break;
+			case 11:
+				fprintf(stdout, "%s\n", VERSION);
 				exit(0);
 				break;
 			case 'v':

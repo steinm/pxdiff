@@ -64,6 +64,7 @@ manpage.1: manpage.sgml
       <command>&dhpackage;</command>
 
       <arg><option>-h | --help <replaceable></replaceable></option></arg>
+      <arg><option>--version <replaceable></replaceable></option></arg>
 
       <arg><option>-d | --data <replaceable></replaceable></option></arg>
       <arg><option>-t | --schema <replaceable></replaceable></option></arg>
@@ -123,8 +124,7 @@ manpage.1: manpage.sgml
         </listitem>
       </varlistentry>
       <varlistentry>
-        <term><option>-v</option>
-          <option>--version</option>
+        <term><option>--version</option>
         </term>
         <listitem>
           <para>Show version of program.</para>

@@ -1,4 +1,5 @@
 Version 0.0.5
+	- added option --version
 	- records at the end of database 2 are being taken into account
 
 Version 0.0.4
