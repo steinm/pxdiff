@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: 0.0.1\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2003-12-18 07:44+0100\n"
+"POT-Creation-Date: 2004-01-09 19:12+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: Uwe Steinmann <uwe@steinmann.cx>\n"
 "Language-Team: DE <uwe@steinmann.cx>\n"
@@ -16,294 +16,402 @@ msgstr ""
 "Content-Type: text/plain; charset=ISO-8859-1\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/main.c:537
+#: src/main.c:571
+#, c-format
 msgid "Not supported field type."
 msgstr "Not unterstützter Feldtyp."
 
-#: src/main.c:574
+#: src/main.c:590
+#, c-format
+msgid "%d fields changed."
+msgstr "%d geänderte Felder."
+
+#: src/main.c:608
 #, c-format
 msgid "Version: %s %s http://sourceforge.net/projects/pxlib"
 msgstr "Version: %s %s http://sourceforge.net/projects/pxlib"
 
-#: src/main.c:576
+#: src/main.c:610
+#, c-format
 msgid "Copyright: Copyright (C) 2003 Uwe Steinmann <uwe@steinmann.cx>"
 msgstr "Copyright: Copyright (C) 2003 Uwe Steinmann <uwe@steinmann.cx>"
 
-#: src/main.c:578
+#: src/main.c:612
 #, c-format
 msgid "%s compares two paradox databases."
 msgstr "%s vergleich zwei Paradox Datenbanken."
 
-#: src/main.c:580
+#: src/main.c:614
 #, c-format
 msgid "Usage: %s [OPTIONS] FILE1 FILE2"
 msgstr "Aufruf: %s [OPTION] DATEI1 DATEI2"
 
-#: src/main.c:582
+#: src/main.c:616
+#, c-format
 msgid "Options:"
 msgstr "Optionen:"
 
-#: src/main.c:584
+#: src/main.c:618
+#, c-format
 msgid "  -h, --help          this usage information."
 msgstr "  -h, --help          diese Hilfe."
 
-#: src/main.c:586
+#: src/main.c:620
+#, c-format
 msgid "  --version           show version information."
 msgstr "  --version           zeige Programmversion."
 
-#: src/main.c:588
+#: src/main.c:622
+#, c-format
 msgid "  -v, --verbose       be more verbose."
 msgstr "  -v, --verbose       mehr Informationen anzeigen"
 
-#: src/main.c:590
+#: src/main.c:624
+#, c-format
 msgid "  -d, --data          compare data."
 msgstr "  -d, --data          vergleiche Datensätze"
 
-#: src/main.c:592
-msgid "  -t, --schema        compare schema."
-msgstr "  -t, --schema        vergleiche Tabellenstuktur"
+#: src/main.c:626
+#, c-format
+msgid "  -t, --schema        compare schema (default)."
+msgstr "  -t, --schema        vergleiche Tabellenstuktur (Voreinstellung)"
 
-#: src/main.c:594
+#: src/main.c:628
+#, c-format
 msgid "  -s, --sort          sort data before calculating difference."
 msgstr "  -s, --sort          sortiere Datensätze vor der Differenzenbildung."
 
-#: src/main.c:596
+#: src/main.c:630
+#, c-format
 msgid "  --mode=MODE         set compare mode (schema, data)."
 msgstr "  --mode=MODE         setze Vergleichs-Modus (schema, data)"
 
-#: src/main.c:598
+#: src/main.c:632
+#, c-format
+msgid "  --output-mode=MODE  set output mode (plain (default), sql, stat)."
+msgstr ""
+"  --output-mode=MODE  setze Ausgabe-Modus (plain (voreingestellt), sql, stat)"
+
+#: src/main.c:634
+#, c-format
 msgid "  -o, --output-file=FILE output data into file instead of stdout."
 msgstr "  -o, --output-file=DATEI schreibe Ausgabe in Datei statt nach stdout."
 
-#: src/main.c:600
+#: src/main.c:636
+#, c-format
 msgid "  -k, --primary-key=FIELD use field as primary key."
 msgstr "  -k, --primary-key=FELD Benutze Feld als Primärschlüssel."
 
-#: src/main.c:602
+#: src/main.c:638
+#, c-format
 msgid "  -r, --recode=ENCODING sets the target encoding."
 msgstr "  -r, --recode=ENCODING setzt Zielkodierung"
 
-#: src/main.c:604
+#: src/main.c:640
+#, c-format
 msgid "  --fields=REGEX      extended regular expression to select fields."
 msgstr ""
 "  --fields=REGEX      erweiterter regulärer Ausdruck zur Auswahl von Feldern."
 
-#: src/main.c:608
+#: src/main.c:642
+#, c-format
+msgid ""
+"  --compare-common    compare only those fields common in both databases."
+msgstr ""
+"  --compare-common    vergleiche nur Felder, die in beiden Datenbanken sind."
+
+#: src/main.c:644
+#, c-format
+msgid ""
+"  --disregard-codepage  different code pages will not prevent record\n"
+"                      comparision."
+msgstr ""
+"  --disregard-codepage  unterschiedliche code pages verhindern nicht den\n"
+"                      Vergleich der Datensätze. "
+
+#: src/main.c:646
+#, c-format
+msgid "  --show-record-diff  Show field differences within a record."
+msgstr ""
+"  --show-record-diff  Zeige Feldwertunterschiede innerhalb eines Datensatzes."
+
+#: src/main.c:650
+#, c-format
 msgid "  --use-gsf           use gsf library to read input file."
 msgstr ""
 "  --use-gsf           benutze gsf-Bibliothek zum Lesen der Eingabedatei."
 
-#: src/main.c:617
+#: src/main.c:659
+#, c-format
 msgid "libpx uses librecode for recoding."
 msgstr "libpx benutzt librecode zum reencodieren."
 
-#: src/main.c:620
+#: src/main.c:662
+#, c-format
 msgid "libpx uses iconv for recoding."
 msgstr "libpx benutzt iconv zum reencodieren."
 
-#: src/main.c:623
+#: src/main.c:665
+#, c-format
 msgid "libpx has no support for recoding."
 msgstr "libpx unterstützt nicht das reencodieren."
 
-#: src/main.c:628
+#: src/main.c:670
+#, c-format
 msgid "libpx has been compiled for big endian architecture."
-msgstr "libpx unterstützt nicht das reencodieren."
+msgstr "libpx wurde für Architekturen mit big endian übersetzt."
 
-#: src/main.c:630
+#: src/main.c:672
+#, c-format
 msgid "libpx has been compiled for little endian architecture."
 msgstr "libpx wurde für Architekturen mit little endian übersetzt."
 
-#: src/main.c:632
+#: src/main.c:674
 #, c-format
 msgid "libpx has gsf support: %s"
 msgstr "libpx hat Unterstützung für die gsf-Bibliothek: %s"
 
-#: src/main.c:632
+#: src/main.c:674
 msgid "Yes"
 msgstr "Ja"
 
-#: src/main.c:632
+#: src/main.c:674
 msgid "No"
 msgstr "Nein"
 
-#: src/main.c:634
+#: src/main.c:676
 #, c-format
 msgid "libpx has version: %d.%d.%d"
 msgstr "libpx ist Version: %d.%d.%d"
 
-#: src/main.c:780
+#: src/main.c:858
+#, c-format
 msgid "You must at least specify the files to compare."
 msgstr "Sie müssen mindestens die beiden zu vergleichenden Dateien angeben."
 
-#: src/main.c:795
+#: src/main.c:873
+#, c-format
 msgid "Could not open output file."
 msgstr "Konnte Ausgabedate nicht öffnen."
 
-#: src/main.c:806 src/main.c:816
+#: src/main.c:884 src/main.c:894
+#, c-format
 msgid "Could not create new paradox instance."
 msgstr "Konnte eine neue Paradox-Instanz nicht anlegen."
 
-#: src/main.c:835
+#: src/main.c:913
+#, c-format
 msgid "Could not open gsf input file."
 msgstr "Konnte Eingabedatei mit gsf-Bibliothek nicht öffnen."
 
-#: src/main.c:844
+#: src/main.c:922
+#, c-format
 msgid "Could not open input file."
 msgstr "Konnte Eingabedatei nicht öffnen."
 
-#: src/main.c:851
+#: src/main.c:929
+#, c-format
 msgid "Could not open first input file."
 msgstr "Konnte erste Eingabedatei nicht öffnen."
 
-#: src/main.c:856
+#: src/main.c:934
+#, c-format
 msgid "Could not open second input file."
 msgstr "Konnte zweite Eingabedatei nicht öffnen."
 
-#: src/main.c:867
+#: src/main.c:945
+#, c-format
 msgid "Could not open primary index to first file."
 msgstr "Konnte die Primärindexdatei nicht öffnen."
 
-#: src/main.c:872
+#: src/main.c:950
+#, c-format
 msgid "Could not read primary index to first file."
 msgstr "Konnte die Primärindexdatei der ersten Datei nicht lesen."
 
-#: src/main.c:877
+#: src/main.c:955
+#, c-format
 msgid "Could not add primary index to first file."
 msgstr "Konnte den Primärindex nicht der ersten Datei hinzufügen."
 
-#: src/main.c:886
+#: src/main.c:964
+#, c-format
 msgid "Could not open primary index to second file."
 msgstr "Konnte die Primärindexdatei der zweiten Datei nicht lesen."
 
-#: src/main.c:891
+#: src/main.c:969
+#, c-format
 msgid "Could not read primary index to second file."
 msgstr "Konnte die Primärindexdatei der zweiten Datei nicht lesen."
 
-#: src/main.c:896
+#: src/main.c:974
+#, c-format
 msgid "Could not add primary index to second file."
 msgstr "Konnte den Primärindex nicht der zweiten Datei hinzufügen."
 
-#: src/main.c:918
+#: src/main.c:996
+#, c-format
 msgid "Could not compile regular expression to select fields."
 msgstr "Konnte regulären Ausdruck nicht übersetzen."
 
 #. allocate memory for selected field array
-#: src/main.c:926 src/main.c:933
+#: src/main.c:1004 src/main.c:1011 src/main.c:1307 src/main.c:1316
 msgid "Allocate memory for array of selected fields."
 msgstr "Alloziere Speicher für Array der selektierten Felder."
 
-#: src/main.c:1001
-msgid "Primary key could not be found in first database."
+#: src/main.c:1079
+#, c-format
+msgid "Primary key could not be found in the first database."
 msgstr "Primärschlüssel konnte in erster Datenbank nicht gefunden werden."
 
-#: src/main.c:1009
-msgid "Primary key is not in list of selected fields of first file."
+#: src/main.c:1087
+#, c-format
+msgid "Primary key is not in list of selected fields of the first database."
 msgstr ""
-"Primärschlüssel ist nicht in der Liste ausgewählter Felder der ersten Datei."
+"Primärschlüssel ist nicht in der Liste ausgewählter Felder der ersten "
+"Datenbank."
 
-#: src/main.c:1035
-msgid "Primary key could not be found in second database."
+#: src/main.c:1113
+#, c-format
+msgid "Primary key could not be found in the second database."
 msgstr "Primärschlüssel konnte in zweiter Datenbank nicht gefunden werden."
 
-#: src/main.c:1043
-msgid "Primary key is not in list of selected fields of second file."
+#: src/main.c:1121
+#, c-format
+msgid "Primary key is not in list of selected fields of the second database."
 msgstr ""
-"Primärschlüssel ist nicht in der Liste ausgewählter Felder der zweiten Datei."
+"Primärschlüssel ist nicht in der Liste ausgewählter Felder der zweiten "
+"Datenbank."
 
-#: src/main.c:1053
+#: src/main.c:1131
+#, c-format
 msgid "Primary keys have different length in databases."
 msgstr "Primärschlüssel haben unterschiedliche Länge in den Datenbanken."
 
-#: src/main.c:1074
+#: src/main.c:1158
 #, c-format
 msgid "-File Version: %1.1f"
 msgstr "-Datei Version: %1.1f"
 
-#: src/main.c:1076
+#: src/main.c:1160
 #, c-format
 msgid "+File Version: %1.1f"
 msgstr "+Datei Version: %1.1f"
 
-#: src/main.c:1080
+#: src/main.c:1164
 #, c-format
 msgid "-File Type: %d"
 msgstr "-Dateityp: %d"
 
-#: src/main.c:1082
+#: src/main.c:1166
 #, c-format
 msgid "+File Type: %d"
 msgstr "+Dateityp: %d"
 
-#: src/main.c:1086
+#: src/main.c:1170
 #, c-format
 msgid "-Tablename: %s"
 msgstr "-Tabellenname: %s"
 
-#: src/main.c:1088
+#: src/main.c:1172
 #, c-format
 msgid "+Tablename: %s"
 msgstr "+Tabellenname: %s"
 
-#: src/main.c:1092
+#: src/main.c:1176
 #, c-format
 msgid "-Num. of Records: %d"
 msgstr "-Anzahl der Datensätze: %d"
 
-#: src/main.c:1094
+#: src/main.c:1178
 #, c-format
 msgid "+Num. of Records: %d"
 msgstr "+Anzahl der Datensätze: %d"
 
-#: src/main.c:1098
+#: src/main.c:1183
 #, c-format
 msgid "-Num. of Fields: %d"
 msgstr "-Anzahl der Felder: %d"
 
-#: src/main.c:1100
+#: src/main.c:1185
 #, c-format
 msgid "+Num. of Fields: %d"
 msgstr "+Anzahl der Felder: %d"
 
-#: src/main.c:1106
+#: src/main.c:1191
 #, c-format
 msgid "-Code Page: %d"
 msgstr "-Code Page: %d"
 
-#: src/main.c:1108
+#: src/main.c:1193
 #, c-format
 msgid "+Code Page: %d"
 msgstr "+Code Page: %d"
 
 #. Allocate memory for lcs matrix: n strings of length m
 #. * Could be smaller if field selection was taken into account
-#: src/main.c:1118 src/main.c:1189 src/main.c:1246 src/main.c:1394
+#. Output the matrix for debugging
+#. lcs_output_matrix(l, numfields1, numfields2);
+#.
+#. get the sequence. lcs will be an array of pointers pointing to
+#. * the specifications of fields which are in both database.
+#. * The pointer is actually pointing to specification of the first
+#. * database.
+#. real record size of only selected fields
+#. get the sequence of all common records. lcs contains the pointers
+#. * to common records. The pointer is actually pointing to the record
+#. * in the first database.
+#: src/main.c:1212 src/main.c:1283 src/main.c:1414 src/main.c:1566
 msgid "Allocate memory for lcs array."
 msgstr "Alloziere Speicher für lcs-Array."
 
-#: src/main.c:1126 src/main.c:1254
+#: src/main.c:1220 src/main.c:1422
 msgid "Allocate memory for lines in lcs array."
 msgstr "Alloziere Speicher für Zeilen in lcs-Array."
 
 #. Create an array of pxfield_t pointers for the first file,
 #. * because lcs_length needs it.
-#: src/main.c:1137 src/main.c:1155
+#. Create an array of pxfield_t pointers for the second file,
+#. * because lcs_length needs it.
+#: src/main.c:1231 src/main.c:1249
 msgid "Allocate memory for array of field pointers."
 msgstr "Alloziere Speicher für Array der Felder-Zeiger."
 
-#: src/main.c:1262 src/main.c:1276
+#: src/main.c:1430 src/main.c:1444
 msgid "Allocate memory for record."
 msgstr "Alloziere Speicher für Datensatz."
 
-#: src/main.c:1269 src/main.c:1283
+#: src/main.c:1437 src/main.c:1451
 msgid "Allocate memory for array of records."
 msgstr "Alloziere Speicher für Array der Felder-Zeiger."
 
-#: src/main.c:1317 src/main.c:1344
+#: src/main.c:1485 src/main.c:1512
 #, c-format
 msgid "Could not get record number %d\n"
 msgstr "Konnte auf Datensatz Nummer %d nicht zugreifen.\n"
 
-#: src/main.c:1482
+#: src/main.c:1658
+#, c-format
+msgid "%d records deleted."
+msgstr "%d Datensätze gelöscht."
+
+#: src/main.c:1660
+#, c-format
+msgid "%d records added."
+msgstr "%d Datensätze hinzugefügt."
+
+#: src/main.c:1662
+#, c-format
+msgid "%d records updated."
+msgstr "%d Datensätze aktualisiert."
+
+#: src/main.c:1664
+#, c-format
+msgid "%d identical records."
+msgstr "%d indentische Datensätze."
+
+#: src/main.c:1678
+#, c-format
 msgid "Schema already differs, will not compare records."
 msgstr ""
 "Tabellenstruktur unterscheidet sich, Datensätze werden nicht verglichen."

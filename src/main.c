@@ -1655,13 +1655,13 @@ int main(int argc, char *argv[]) {
 		}
 
 		if(outputstat) {
-			fprintf(outfp, _("%d records deleted"), deletedrecs);
+			fprintf(outfp, _("%d records deleted."), deletedrecs);
 			fprintf(outfp, "\n");
-			fprintf(outfp, _("%d records added"), addedrecs);
+			fprintf(outfp, _("%d records added."), addedrecs);
 			fprintf(outfp, "\n");
-			fprintf(outfp, _("%d records updated"), updatedrecs);
+			fprintf(outfp, _("%d records updated."), updatedrecs);
 			fprintf(outfp, "\n");
-			fprintf(outfp, _("%d identical records"), equalrecs);
+			fprintf(outfp, _("%d identical records."), equalrecs);
 			fprintf(outfp, "\n");
 		}
 
