@@ -2441,14 +2441,16 @@ int main(int argc, char *argv[]) {
 		/* Output all remaining records in first database */
 		while(i < pxh1->px_numrecords) {
 			if(outputplain)
-				show_plain_delete(outfp, pkeyindex1, pxdoc1, pxh1, records1[i++], selectedfields1);
+				show_plain_delete(outfp, pkeyindex1, pxdoc1, pxh1, records1[i], selectedfields1);
+			i++;
 			deletedrecs++;
 		}
 
 		/* Output all remaining records in second database */
 		while(j < pxh2->px_numrecords) {
 			if(outputplain)
-				show_plain_insert(outfp, pkeyindex2, pxdoc2, pxh2, records2[j++], selectedfields2);
+				show_plain_insert(outfp, pkeyindex2, pxdoc2, pxh2, records2[j], selectedfields2);
+			j++;
 			addedrecs++;
 		}
 
