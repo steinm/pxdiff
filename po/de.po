@@ -49,7 +49,7 @@ msgstr "  -h, --help          diese Hilfe."
 
 #: src/main.c:586
 msgid "  --version           show version information."
-msgstr "  --version           zeige Programmversion.
+msgstr "  --version           zeige Programmversion."
 
 #: src/main.c:588
 msgid "  -v, --verbose       be more verbose."
