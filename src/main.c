@@ -1208,23 +1208,24 @@ int show_record_diff(FILE *outfp, pxdoc_t *pxdoc1, pxhead_t *pxh1, char *data1, 
 					int year2, month2, day2;
 					if((ret1 = PX_get_data_long(pxdoc1, &data1[offset1], pxf1[i].px_flen, &value1)) >= 0) {
 						if((ret2 = PX_get_data_long(pxdoc2, &data2[offset2], pxf2[j].px_flen, &value2)) >= 0) {
-							if(value1 != value2) {
-								fccount++;
+							if((ret1 > 0) && (ret2 > 0) && (value1 != value2)) {
 								fprintf(outfp, "%s%c", pxf1[i].px_fname, delimiter);
-								if(ret1) {
-									PX_SdnToGregorian(value1+1721425, &year1, &month1, &day1);
-									fprintf(outfp, "%02d.%02d.%04d", day1, month1, year1);
-								} else {
-									fprintf(outfp, "NULL");
-								}
+								PX_SdnToGregorian(value1+1721425, &year1, &month1, &day1);
+								fprintf(outfp, "%02d.%02d.%04d", day1, month1, year1);
 								fprintf(outfp, "%c", delimiter);
-								if(ret2) {
-									PX_SdnToGregorian(value2+1721425, &year2, &month2, &day2);
-									fprintf(outfp, "%02d.%02d.%04d", day2, month2, year2);
-								} else {
-									fprintf(outfp, "NULL");
-								}
-								fprintf(outfp, "\n");
+								PX_SdnToGregorian(value2+1721425, &year2, &month2, &day2);
+								fprintf(outfp, "%02d.%02d.%04d\n", day2, month2, year2);
+								fccount++;
+							} else if((ret1 > 0) && (ret2 == 0)) {
+								fprintf(outfp, "%s%c", pxf1[i].px_fname, delimiter);
+								PX_SdnToGregorian(value1+1721425, &year1, &month1, &day1);
+								fprintf(outfp, "%02d.%02d.%04d%cNULL\n", day1, month1, year1, delimiter);
+								fccount++;
+							} else if((ret1 == 0) && (ret2 > 0)) {
+								fprintf(outfp, "%s%c", pxf1[i].px_fname, delimiter);
+								PX_SdnToGregorian(value2+1721425, &year2, &month2, &day2);
+								fprintf(outfp, "NULL%c%02d.%02d.%04d\n", delimiter, day2, month2, year2);
+								fccount++;
 							}
 						}
 					}
@@ -1234,21 +1235,18 @@ int show_record_diff(FILE *outfp, pxdoc_t *pxdoc1, pxhead_t *pxh1, char *data1, 
 					short int value1, value2;
 					if((ret1 = PX_get_data_short(pxdoc1, &data1[offset1], pxf1[i].px_flen, &value1)) >= 0) {
 						if((ret2 = PX_get_data_short(pxdoc2, &data2[offset2], pxf2[j].px_flen, &value2)) >= 0) {
-							if(value1 != value2) {
-								fccount++;
+							if((ret1 > 0) && (ret2 > 0) && (value1 != value2)) {
 								fprintf(outfp, "%s%c", pxf1[i].px_fname, delimiter);
-								if(ret1) {
-									fprintf(outfp, "%d", value1);
-								} else {
-									fprintf(outfp, "NULL");
-								}
-								fprintf(outfp, "%c", delimiter);
-								if(ret2) {
-									fprintf(outfp, "%d", value2);
-								} else {
-									fprintf(outfp, "NULL");
-								}
-								fprintf(outfp, "\n");
+								fprintf(outfp, "%d%c%d\n", value1, delimiter, value2);
+								fccount++;
+							} else if((ret1 > 0) && (ret2 == 0)) {
+								fprintf(outfp, "%s%c", pxf1[i].px_fname, delimiter);
+								fprintf(outfp, "%d%cNULL\n", value1, delimiter);
+								fccount++;
+							} else if((ret1 == 0) && (ret2 > 0)) {
+								fprintf(outfp, "%s%c", pxf1[i].px_fname, delimiter);
+								fprintf(outfp, "NULL%c%d\n", delimiter, value2);
+								fccount++;
 							}
 						}
 					}
@@ -1260,21 +1258,18 @@ int show_record_diff(FILE *outfp, pxdoc_t *pxdoc1, pxhead_t *pxh1, char *data1, 
 					long value1, value2;
 					if((ret1 = PX_get_data_long(pxdoc1, &data1[offset1], pxf1[i].px_flen, &value1)) >= 0) {
 						if((ret2 = PX_get_data_long(pxdoc2, &data2[offset2], pxf2[j].px_flen, &value2)) >= 0) {
-							if(value1 != value2) {
-								fccount++;
+							if((ret1 > 0) && (ret2 > 0) && (value1 != value2)) {
 								fprintf(outfp, "%s%c", pxf1[i].px_fname, delimiter);
-								if(ret1) {
-									fprintf(outfp, "%ld", value1);
-								} else {
-									fprintf(outfp, "NULL");
-								}
-								fprintf(outfp, "%c", delimiter);
-								if(ret2) {
-									fprintf(outfp, "%ld", value2);
-								} else {
-									fprintf(outfp, "NULL");
-								}
-								fprintf(outfp, "\n");
+								fprintf(outfp, "%ld%c%ld\n", value1, delimiter, value2);
+								fccount++;
+							} else if((ret1 > 0) && (ret2 == 0)) {
+								fprintf(outfp, "%s%c", pxf1[i].px_fname, delimiter);
+								fprintf(outfp, "%ld%cNULL\n", value1, delimiter);
+								fccount++;
+							} else if((ret1 == 0) && (ret2 > 0)) {
+								fprintf(outfp, "%s%c", pxf1[i].px_fname, delimiter);
+								fprintf(outfp, "NULL%c%ld\n", delimiter, value2);
+								fccount++;
 							}
 						}
 					}
@@ -1284,21 +1279,20 @@ int show_record_diff(FILE *outfp, pxdoc_t *pxdoc1, pxhead_t *pxh1, char *data1, 
 					long value1, value2;
 					if((ret1 = PX_get_data_long(pxdoc1, &data1[offset1], pxf1[i].px_flen, &value1)) >= 0) {
 						if((ret2 = PX_get_data_long(pxdoc2, &data2[offset2], pxf2[j].px_flen, &value2)) >= 0) {
-							if(value1 != value2) {
-								fccount++;
+							if((ret1 > 0) && (ret2 > 0) && (value1 != value2)) {
 								fprintf(outfp, "%s%c", pxf1[i].px_fname, delimiter);
-								if(ret1) {
-									fprintf(outfp, "'%02d:%02d:%02.3f'", value1/3600000, value1/60000%60, value1%60000/1000.0);
-								} else {
-									fprintf(outfp, "NULL");
-								}
+								fprintf(outfp, "%02d:%02d:%02.3f", value1/3600000, value1/60000%60, value1%60000/1000.0);
 								fprintf(outfp, "%c", delimiter);
-								if(ret2) {
-									fprintf(outfp, "'%02d:%02d:%02.3f'", value2/3600000, value2/60000%60, value2%60000/1000.0);
-								} else {
-									fprintf(outfp, "NULL");
-								}
-								fprintf(outfp, "\n");
+								fprintf(outfp, "%02d:%02d:%02.3f\n", value2/3600000, value2/60000%60, value2%60000/1000.0);
+								fccount++;
+							} else if((ret1 > 0) && (ret2 == 0)) {
+								fprintf(outfp, "%s%c", pxf1[i].px_fname, delimiter);
+								fprintf(outfp, "%02d:%02d:%02.3f%cNULL\n", value1/3600000, value1/60000%60, value1%60000/1000.0, delimiter);
+								fccount++;
+							} else if((ret1 == 0) && (ret2 > 0)) {
+								fprintf(outfp, "%s%c", pxf1[i].px_fname, delimiter);
+								fprintf(outfp, "NULL%c%02d:%02d:%02.3f\n", delimiter, value2/3600000, value2/60000%60, value2%60000/1000.0);
+								fccount++;
 							}
 						}
 					}
@@ -1309,21 +1303,18 @@ int show_record_diff(FILE *outfp, pxdoc_t *pxdoc1, pxhead_t *pxh1, char *data1, 
 					double value1, value2;
 					if((ret1 = PX_get_data_double(pxdoc1, &data1[offset1], pxf1[i].px_flen, &value1)) >= 0) {
 						if((ret2 = PX_get_data_double(pxdoc2, &data2[offset2], pxf2[j].px_flen, &value2)) >= 0) {
-							if(value1 != value2) {
-								fccount++;
+							if((ret1 > 0) && (ret2 > 0) && (value1 != value2)) {
 								fprintf(outfp, "%s%c", pxf1[i].px_fname, delimiter);
-								if(ret1) {
-									fprintf(outfp, "%f", value1);
-								} else {
-									fprintf(outfp, "NULL");
-								}
-								fprintf(outfp, "%c", delimiter);
-								if(ret2) {
-									fprintf(outfp, "%f", value2);
-								} else {
-									fprintf(outfp, "NULL");
-								}
-								fprintf(outfp, "\n");
+								fprintf(outfp, "%f%c%f\n", value1, delimiter, value2);
+								fccount++;
+							} else if((ret1 > 0) && (ret2 == 0)) {
+								fprintf(outfp, "%s%c", pxf1[i].px_fname, delimiter);
+								fprintf(outfp, "%f%cNULL\n", value1, delimiter);
+								fccount++;
+							} else if((ret1 == 0) && (ret2 > 0)) {
+								fprintf(outfp, "%s%c", pxf1[i].px_fname, delimiter);
+								fprintf(outfp, "NULL%c%f\n", delimiter, value2);
+								fccount++;
 							}
 						}
 					} 
@@ -1331,24 +1322,20 @@ int show_record_diff(FILE *outfp, pxdoc_t *pxdoc1, pxhead_t *pxh1, char *data1, 
 					} 
 				case pxfLogical: {
 					char value1, value2;
-					if(PX_get_data_byte(pxdoc1, &data1[offset1], pxf1[i].px_flen, &value1)) {
-						if(PX_get_data_byte(pxdoc2, &data2[offset2], pxf2[j].px_flen, &value2)) {
-							if(value1 != value2) {
+					if((ret1 = PX_get_data_byte(pxdoc1, &data1[offset1], pxf1[i].px_flen, &value1)) >= 0) {
+						if((ret2 = PX_get_data_byte(pxdoc2, &data2[offset2], pxf2[j].px_flen, &value2)) >= 0) {
+							if((ret1 > 0) && (ret2 > 0) && (value1 != value2)) {
+								fprintf(outfp, "%s%c", pxf1[i].px_fname, delimiter);
+								fprintf(outfp, "%d%c%d\n", value1, delimiter, value2);
 								fccount++;
+							} else if((ret1 > 0) && (ret2 == 0)) {
 								fprintf(outfp, "%s%c", pxf1[i].px_fname, delimiter);
-								if(ret1) {
-									fprintf(outfp, "%d", value1);
-								} else {
-									fprintf(outfp, "NULL");
-								}
-								fprintf(outfp, "%c", delimiter);
-								if(ret2) {
-									fprintf(outfp, "%d", value2);
-								} else {
-									fprintf(outfp, "NULL");
-								}
-								fprintf(outfp, "\n");
+								fprintf(outfp, "%d%cNULL\n", value1, delimiter);
+								fccount++;
+							} else if((ret1 == 0) && (ret2 > 0)) {
 								fprintf(outfp, "%s%c", pxf1[i].px_fname, delimiter);
+								fprintf(outfp, "NULL%c%d\n", delimiter, value2);
+								fccount++;
 							}
 						}
 					}
