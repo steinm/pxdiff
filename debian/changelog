@@ -1,3 +1,10 @@
+pxdiff (0.0.3-1) unstable; urgency=low
+
+  * New upstream version.
+  * requires at least pxlib 0.2.2
+
+ -- Uwe Steinmann <uwe@steinmann.cx>  Sat, 08 Nov 2003 06:50:31 +0100
+
 pxdiff (0.0.2-1) unstable; urgency=low
 
   * New upstream version.
