@@ -96,6 +96,9 @@ manpage.1: manpage.sgml
 			section on 'How differences are found'.</para>
 		<para>A similar problem occurs when the two databases has the same fields
 		  but in different order. Such cases cannot be handled reasonably.</para>
+		<para>&dhpackage; may also be confused by different code pages. If
+		  characters fields contain identical characters but with different
+			encoding, then this will be interpreted as a different field.</para>
   </refsect1>
   <refsect1>
     <title>OPTIONS</title>
