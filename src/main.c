@@ -78,28 +78,25 @@ int fieldcmp(void *data1, void *data2, size_t n) {
 /* }}} */
 
 /* lcs_length() {{{
- * Calculates the length of longest common sequence of two data fields. Each
- * data field is list of pointers to the data. The data comparision function
- * datacmp() must take two pointers to the data and size of the data. It
- * returns -1, 0, or 1 respectively to data1 being less, equal or greater the
- * data2. The parameter l has to been array of num1 pointers to strings
- * of num2 length.
+ * Calculates the length of the longest common sequence of two data fields.
+ * Each data field is list of pointers to the data records. The data
+ * comparision function datacmp() must take two pointers to the data record and
+ * th esize of the record. It returns -1, 0, or 1 respectively to data1 being
+ * less, equal or greater the data2. The parameter l has to been array of num1
+ * pointers to strings of num2 length. Or, in other words, it is array of num1
+ * strings all being num2 long.
+ * This function can be used universally for any two list of pointers to
+ * an kind of data as long as the compare function is provided.
  */
 int lcs_length(int **l, void **data1, int num1, void **data2, int num2, int
-(datacmp)(void *data1, void *data2, size_t n), size_t n) {
-	int i, j;
-	for(i=num1; i>=0; i--) {
-		for(j=num2; j>=0; j--) {
-			/* FIXME: l[num1][0-num2] and l[1-num1][num2] should be filled
-			 * with 0 before. 
+		(datacmp)(void *data1, void *data2, size_t n), size_t n) { int i, j;
+	for(i=num1; i>=0; i--) { for(j=num2; j>=0; j--) {
+			/* FIXME: l[num1][0-num2] and l[1-num1][num2] should be filled with
+			 * 0 before. 
 			 */
-			if(i==num1 || j==num2) l[i][j] = 0;
-			else if(!datacmp(data1[i], data2[j], n)) l[i][j] = 1 + l[i+1][j+1];
-			else l[i][j] = max(l[i+1][j], l[i][j+1]);
-		}
-	}
-	return l[0][0];
-}
+			if(i==num1 || j==num2) l[i][j] = 0; else if(!datacmp(data1[i],
+						data2[j], n)) l[i][j] = 1 + l[i+1][j+1]; else l[i][j] =
+				max(l[i+1][j], l[i][j+1]); } } return l[0][0]; }
 /* }}} */
 
 /* lcs_sequence() {{{
@@ -203,7 +200,7 @@ void show_field(FILE *outfp, pxfield_t *pxf) {
 /* show_record() {{{
  * Outputs a record as csv
  */
-void show_record(FILE *outfp, pxdoc_t *pxdoc, pxhead_t *pxh, char *data, char *selectedfields) {
+void show_record(FILE *outfp, pxdoc_t *pxdoc, pxhead_t *pxh, char *data, int *selectedfields) {
 	pxfield_t *pxf;
 	int offset, first, i;
 	char delimiter = '\t';
@@ -212,7 +209,7 @@ void show_record(FILE *outfp, pxdoc_t *pxdoc, pxhead_t *pxh, char *data, char *s
 	offset = 0;
 	first = 0;  // set to 1 when first field has been output
 	for(i=0; i<pxh->px_numfields; i++) {
-		if(!selectedfields || (selectedfields && selectedfields[i])) {
+		if(!selectedfields || (selectedfields && selectedfields[i] >= 0)) {
 			if(first == 1)
 				fprintf(outfp, "%c", delimiter);
 			switch(pxf->px_ftype) {
@@ -305,26 +302,61 @@ void show_record(FILE *outfp, pxdoc_t *pxdoc, pxhead_t *pxh, char *data, char *s
 /* show_record_diff() {{{
  * Outputs the difference of two records. The must have identical
  * size and structure.
+ * The function can handle records with common fields being at different
+ * positions in the table structure but not if the common fields have a
+ * different order.
+ * Example: The following is fine for a set of selected fields (--- stands
+ * for: this field is not selected.)
+ *    file1         file2
+ *    ---------------------
+ * 0. ---           field1
+ * 1. field1        field2
+ * 2. ---           ---
+ * 3. field2        ---
+ * 
+ * In such a case the algorithm will compare the fields at position 0.
+ * Since file1[0] is not set the index (i) will be incremented. The other
+ * index (j) remains unchanged. Now file[1] and file2[0] will be compared.
+ * They are equal and i and j will be incremented. file[2] and file[1]
+ * are not equal. Incrementing i and comparing file1[3] and file2[1] will
+ * again be successfull. Since i is not at its upper limit it will not be
+ * incremented any more. If j ist also at its upper limit the while loop
+ * will quit.
  */
-void show_record_diff(FILE *outfp, pxdoc_t *pxdoc1, pxhead_t *pxh1, char *data1, pxdoc_t *pxdoc2, pxhead_t *pxh2, char *data2) {
-	pxfield_t *pxf;
-	int offset, i;
+void show_record_diff(FILE *outfp, pxdoc_t *pxdoc1, pxhead_t *pxh1, char *data1, int *selectedfields1, pxdoc_t *pxdoc2, pxhead_t *pxh2, char *data2, int *selectedfields2) {
+	pxfield_t *pxf1, *pxf2;
+	int i, j;
+	int offset1, offset2;
 	char delimiter = '\t';
 	char enclosure = '\"';
-	pxf = pxh1->px_fields; /* By definition the structure must be equal */
-	offset = 0;
-	for(i=0; i<pxh1->px_numfields; i++) {
-//		if(fieldregex == NULL || selectedfields[i]) {
-//			fprintf(outfp, "Comparing '%s'\n", pxf->px_fname);
-			switch(pxf->px_ftype) {
+	pxf1 = pxh1->px_fields;
+	pxf2 = pxh2->px_fields;
+	i = j = 0;
+	offset1 = offset2 = 0;
+	/* The following loop makes some assumptions:
+	 * 1. The sequence of fields which are common to both files is equal.
+	 *    It may be that equal fields are not at the same index position
+	 *    in selectedfields[1|2] but one will never be before are after
+	 *    the other.
+	 * 2. Common fields are absolutely equal in type and size.
+	 */
+	while((i < pxh1->px_numfields) && (j < pxh2->px_numfields)) {
+		/* There may be no selected fields at all. In such a case the whole
+		 * record will be compared. If we have selected fields we need to make
+		 * sure to access the right field which may be at different positions
+		 * in the table structure.
+		 */
+		if(!selectedfields1 || !selectedfields2 || ((selectedfields1[i] >= 0) && (selectedfields2[j] >= 0))) {
+//			fprintf(outfp, "Comparing '%s' which is of type %d\n", pxf1[i].px_fname, pxf1[i].px_ftype);
+			switch(pxf1[i].px_ftype) {
 				case pxfAlpha: {
 					char *value1, *value2;
-					if(PX_get_data_alpha(pxdoc1, &data1[offset], pxf->px_flen, &value1)) {
-						if(PX_get_data_alpha(pxdoc2, &data2[offset], pxf->px_flen, &value2)) {
-							if(strncmp(value1, value2, pxf->px_flen)) {
-								fprintf(outfp, "%s%c", pxf->px_fname, delimiter);
-								fprintf(outfp, "%s%c", value1, delimiter);
-								fprintf(outfp, "%s\n", value2);
+					if(PX_get_data_alpha(pxdoc1, &data1[offset1], pxf1[i].px_flen, &value1)) {
+						if(PX_get_data_alpha(pxdoc2, &data2[offset2], pxf2[j].px_flen, &value2)) {
+							if(strncmp(value1, value2, min(pxf1[i].px_flen, pxf2[j].px_flen))) {
+								fprintf(outfp, "%s%c", pxf1[i].px_fname, delimiter);
+								fprintf(outfp, "'%s'%c", value1, delimiter);
+								fprintf(outfp, "'%s'\n", value2);
 							}
 						}
 					}
@@ -334,12 +366,12 @@ void show_record_diff(FILE *outfp, pxdoc_t *pxdoc1, pxhead_t *pxh1, char *data1,
 					long value1, value2;
 					int year1, month1, day1;
 					int year2, month2, day2;
-					if(PX_get_data_long(pxdoc1, &data1[offset], pxf->px_flen, &value1)) {
-						if(PX_get_data_long(pxdoc2, &data2[offset], pxf->px_flen, &value2)) {
+					if(PX_get_data_long(pxdoc1, &data1[offset1], pxf1[i].px_flen, &value1)) {
+						if(PX_get_data_long(pxdoc2, &data2[offset2], pxf2[j].px_flen, &value2)) {
 							if(value1 != value2) {
 								PX_SdnToGregorian(value1+1721425, &year1, &month1, &day1);
 								PX_SdnToGregorian(value2+1721425, &year2, &month2, &day2);
-								fprintf(outfp, "%s%c", pxf->px_fname, delimiter);
+								fprintf(outfp, "%s%c", pxf1[i].px_fname, delimiter);
 								fprintf(outfp, "%02d.%02d.%04d%c", day1, month1, year1, delimiter);
 								fprintf(outfp, "%02d.%02d.%04d\n", day2, month2, year2);
 							}
@@ -349,10 +381,10 @@ void show_record_diff(FILE *outfp, pxdoc_t *pxdoc1, pxhead_t *pxh1, char *data1,
 					}
 				case pxfShort: {
 					short int value1, value2;
-					if(PX_get_data_short(pxdoc1, &data1[offset], pxf->px_flen, &value1)) {
-						if(PX_get_data_short(pxdoc2, &data2[offset], pxf->px_flen, &value2)) {
+					if(PX_get_data_short(pxdoc1, &data1[offset1], pxf1[i].px_flen, &value1)) {
+						if(PX_get_data_short(pxdoc2, &data2[offset2], pxf2[j].px_flen, &value2)) {
 							if(value1 != value2) {
-								fprintf(outfp, "%s%c", pxf->px_fname, delimiter);
+								fprintf(outfp, "%s%c", pxf1[i].px_fname, delimiter);
 								fprintf(outfp, "%d%c", value1, delimiter);
 								fprintf(outfp, "%d\n", value2);
 							}
@@ -364,10 +396,10 @@ void show_record_diff(FILE *outfp, pxdoc_t *pxdoc1, pxhead_t *pxh1, char *data1,
 				case pxfTimestamp:
 				case pxfLong: {
 					long value1, value2;
-					if(PX_get_data_long(pxdoc1, &data1[offset], pxf->px_flen, &value1)) {
-						if(PX_get_data_long(pxdoc2, &data2[offset], pxf->px_flen, &value2)) {
+					if(PX_get_data_long(pxdoc1, &data1[offset1], pxf1[i].px_flen, &value1)) {
+						if(PX_get_data_long(pxdoc2, &data2[offset2], pxf2[j].px_flen, &value2)) {
 							if(value1 != value2) {
-								fprintf(outfp, "%s%c", pxf->px_fname, delimiter);
+								fprintf(outfp, "%s%c", pxf1[i].px_fname, delimiter);
 								fprintf(outfp, "%ld%c", value1, delimiter);
 								fprintf(outfp, "%ld\n", value2);
 							}
@@ -377,10 +409,10 @@ void show_record_diff(FILE *outfp, pxdoc_t *pxdoc1, pxhead_t *pxh1, char *data1,
 					}
 				case pxfTime: {
 					long value1, value2;
-					if(PX_get_data_long(pxdoc1, &data1[offset], pxf->px_flen, &value1)) {
-						if(PX_get_data_long(pxdoc2, &data2[offset], pxf->px_flen, &value2)) {
+					if(PX_get_data_long(pxdoc1, &data1[offset1], pxf1[i].px_flen, &value1)) {
+						if(PX_get_data_long(pxdoc2, &data2[offset2], pxf2[j].px_flen, &value2)) {
 							if(value1 != value2) {
-								fprintf(outfp, "%s%c", pxf->px_fname, delimiter);
+								fprintf(outfp, "%s%c", pxf1[i].px_fname, delimiter);
 								fprintf(outfp, "'%02d:%02d:%02.3f'%c", value1/3600000, value1/60000%60, value1%60000/1000.0, delimiter);
 								fprintf(outfp, "'%02d:%02d:%02.3f'\n", value2/3600000, value2/60000%60, value2%60000/1000.0);
 							}
@@ -391,10 +423,10 @@ void show_record_diff(FILE *outfp, pxdoc_t *pxdoc1, pxhead_t *pxh1, char *data1,
 				case pxfCurrency:
 				case pxfNumber: {
 					double value1, value2;
-					if(PX_get_data_double(pxdoc1, &data1[offset], pxf->px_flen, &value1)) {
-						if(PX_get_data_double(pxdoc2, &data2[offset], pxf->px_flen, &value2)) {
+					if(PX_get_data_double(pxdoc1, &data1[offset1], pxf1[i].px_flen, &value1)) {
+						if(PX_get_data_double(pxdoc2, &data2[offset2], pxf2[j].px_flen, &value2)) {
 							if(value1 != value2) {
-								fprintf(outfp, "%s%c", pxf->px_fname, delimiter);
+								fprintf(outfp, "%s%c", pxf1[i].px_fname, delimiter);
 								fprintf(outfp, "%f%c", value1, delimiter);
 								fprintf(outfp, "%f\n", value2);
 							}
@@ -404,10 +436,10 @@ void show_record_diff(FILE *outfp, pxdoc_t *pxdoc1, pxhead_t *pxh1, char *data1,
 					} 
 				case pxfLogical: {
 					char value1, value2;
-					if(PX_get_data_byte(pxdoc1, &data1[offset], pxf->px_flen, &value1)) {
-						if(PX_get_data_byte(pxdoc2, &data2[offset], pxf->px_flen, &value2)) {
+					if(PX_get_data_byte(pxdoc1, &data1[offset1], pxf1[i].px_flen, &value1)) {
+						if(PX_get_data_byte(pxdoc2, &data2[offset2], pxf2[j].px_flen, &value2)) {
 							if(value1 != value2) {
-								fprintf(outfp, "%s%c", pxf->px_fname, delimiter);
+								fprintf(outfp, "%s%c", pxf1[i].px_fname, delimiter);
 								if(value1)
 									fprintf(outfp, "1%c", delimiter);
 								else
@@ -422,11 +454,26 @@ void show_record_diff(FILE *outfp, pxdoc_t *pxdoc1, pxhead_t *pxh1, char *data1,
 					break;
 					}
 				default:
-					fprintf(outfp, "");
+					fprintf(outfp, _("Not supported field type."));
 			}
-//		}
-		offset += pxf->px_flen;
-		pxf++;
+			offset1 += pxf1[i].px_flen;
+			offset2 += pxf2[j].px_flen;
+			i++;
+			j++;
+		} else {
+			/* One of the two fields or both at the current positions (i and j)
+			 * are not selected. Forward the index to the next field and check
+			 * again for equal fields.
+			 */
+			if((selectedfields1[i] < 0) && (i < pxh1->px_numfields)) {
+				offset1 += pxf1[i].px_flen;
+				i++;
+			}
+			if((selectedfields2[j] < 0) && (j < pxh2->px_numfields)) {
+				offset2 += pxf2[j].px_flen;
+				j++;
+			}
+		}
 	}
 	fprintf(outfp, "\n");
 }
@@ -513,8 +560,8 @@ int main(int argc, char *argv[]) {
 	pxdoc_t *pxdoc1 = NULL, *pxdoc2 = NULL;
 	pxdoc_t *pindexdoc1 = NULL, *pindexdoc2 = NULL;
 	char *progname = NULL;
-	char *selectedfields1 = NULL;
-	char *selectedfields2 = NULL;
+	int *selectedfields1 = NULL;
+	int *selectedfields2 = NULL;
 	int j, c; // general counters
 	int outputinfo = 0;
 	int comparedata = 0;
@@ -626,6 +673,10 @@ int main(int argc, char *argv[]) {
 	if (optind < argc) {
 		pindexfile2 = strdup(argv[optind++]);
 	}
+
+	/* compare schema is the default if none is selected */
+	if(!compareschema && !comparedata)
+		compareschema = 1;
 
 	if(!inputfile1 || !inputfile2) {
 		fprintf(stderr, _("You must at least specify the files to compare."));
@@ -756,6 +807,7 @@ int main(int argc, char *argv[]) {
 		regex_t preg;
 		pxfield_t *pxf;
 		int i;
+		int offset;
 		if(regcomp(&preg, fieldregex, REG_NOSUB|REG_EXTENDED|REG_ICASE)) {
 			fprintf(stderr, _("Could not compile regular expression to select fields."));
 			PX_close(pxdoc1);
@@ -763,30 +815,44 @@ int main(int argc, char *argv[]) {
 			exit(1);
 		}
 		/* allocate memory for selected field array */
-		if((selectedfields1 = (char *) pxdoc1->malloc(pxdoc1, pxh1->px_numfields, _("Could not allocate memory for array of selected fields."))) == NULL) {
+		if((selectedfields1 = (int *) pxdoc1->malloc(pxdoc1, pxh1->px_numfields*sizeof(int), _("Could not allocate memory for array of selected fields."))) == NULL) {
 			PX_close(pxdoc1);
 			PX_close(pxdoc2);
 			exit(1);
 		}
-		if((selectedfields2 = (char *) pxdoc2->malloc(pxdoc2, pxh2->px_numfields, _("Could not allocate memory for array of selected fields."))) == NULL) {
+		if((selectedfields2 = (int *) pxdoc2->malloc(pxdoc2, pxh2->px_numfields*sizeof(int), _("Could not allocate memory for array of selected fields."))) == NULL) {
 			PX_close(pxdoc1);
 			PX_close(pxdoc2);
 			exit(1);
 		}
-		memset(selectedfields1, '\0', pxh1->px_numfields);
+
+		/* loop through all fields and check if the name matches the regular
+		 * expression. If it does match then selectfields[i] will be set to the
+		 * offset of the field data within the record. If it does not match
+		 * if will be set to -1
+		 */
+//		memset(selectedfields1, '\0', pxh1->px_numfields);
+		offset = 0;
 		pxf = pxh1->px_fields;
 		for(i=0; i<pxh1->px_numfields; i++) {
 			if(0 == regexec(&preg, pxf->px_fname, 0, NULL, 0)) {
-				selectedfields1[i] = 1;
+				selectedfields1[i] = offset;
+			} else {
+				selectedfields1[i] = -1;
 			}
+			offset += pxf->px_flen;
 			pxf++;
 		}
-		memset(selectedfields2, '\0', pxh2->px_numfields);
+//		memset(selectedfields2, '\0', pxh2->px_numfields);
+		offset = 0;
 		pxf = pxh2->px_fields;
 		for(i=0; i<pxh2->px_numfields; i++) {
 			if(0 == regexec(&preg, pxf->px_fname, 0, NULL, 0)) {
-				selectedfields2[i] = 1;
+				selectedfields2[i] = offset;
+			} else {
+				selectedfields2[i] = -1;
 			}
+			offset += pxf->px_flen;
 			pxf++;
 		}
 	}
@@ -811,7 +877,7 @@ int main(int argc, char *argv[]) {
 				break;
 			}
 			if(fieldregex) {
-				if(selectedfields1[i]) {
+				if(selectedfields1[i] >= 0) {
 					pkeystart1 += pxf->px_flen;
 				}
 			} else {
@@ -825,8 +891,8 @@ int main(int argc, char *argv[]) {
 			PX_close(pxdoc2);
 			exit(1);
 		}
-		if(selectedfields1 && !selectedfields1[i]) {
-			fprintf(stderr, _("Primary key is not in list of selected fields."));
+		if(selectedfields1 && selectedfields1[i] < 0) {
+			fprintf(stderr, _("Primary key is not in list of selected fields of first file."));
 			PX_close(pxdoc1);
 			PX_close(pxdoc2);
 			exit(1);
@@ -841,7 +907,7 @@ int main(int argc, char *argv[]) {
 				break;
 			}
 			if(fieldregex) {
-				if(selectedfields2[i]) {
+				if(selectedfields2[i] >= 0) {
 					pkeystart2 += pxf->px_flen;
 				}
 			} else {
@@ -855,8 +921,8 @@ int main(int argc, char *argv[]) {
 			PX_close(pxdoc2);
 			exit(1);
 		}
-		if(selectedfields1 && !selectedfields1[i]) {
-			fprintf(stderr, _("Primary key is not in list of selected fields."));
+		if(selectedfields2 && selectedfields2[i] < 0) {
+			fprintf(stderr, _("Primary key is not in list of selected fields of second file."));
 			PX_close(pxdoc1);
 			PX_close(pxdoc2);
 			exit(1);
@@ -864,7 +930,7 @@ int main(int argc, char *argv[]) {
 
 		/* Check if both keys are equally long */
 		if(pkeylen1 != pkeylen2) {
-			fprintf(stderr, _("Primary keys has different length in databases."));
+			fprintf(stderr, _("Primary keys have different length in databases."));
 			PX_close(pxdoc1);
 			PX_close(pxdoc2);
 			exit(1);
@@ -940,7 +1006,8 @@ int main(int argc, char *argv[]) {
 			}
 		}
 
-		/* Create an array of pxfield_t pointers because lcs_length needs it. */
+		/* Create an array of pxfield_t pointers for the first file,
+		 * because lcs_length needs it. */
 		if((fields1 = (pxfield_t **) pxdoc1->malloc(pxdoc1, (pxh1->px_numfields)*sizeof(pxfield_t *), _("Could not allocate memory for array of field pointers."))) == NULL) {
 			for(i=0; i<pxh1->px_numfields+1; i++)
 				px_free(pxdoc1, l[i]);
@@ -951,11 +1018,13 @@ int main(int argc, char *argv[]) {
 		}
 		numfields1 = 0;
 		for(i=0; i<pxh1->px_numfields; i++) {
-			if(fieldregex == NULL || selectedfields1[i]) {
+			if(fieldregex == NULL || selectedfields1[i] >= 0) {
 				fields1[numfields1++] = &pxf1[i];
 			}
 		}
-		if((fields2 = (pxfield_t **) pxdoc1->malloc(pxdoc1, (pxh2->px_numfields)*sizeof(pxfield_t *), _("Could not allocate memory for array of field pointers."))) == NULL) {
+		/* Create an array of pxfield_t pointers for the second file,
+		 * because lcs_length needs it. */
+		if((fields2 = (pxfield_t **) pxdoc2->malloc(pxdoc2, (pxh2->px_numfields)*sizeof(pxfield_t *), _("Could not allocate memory for array of field pointers."))) == NULL) {
 			for(i=0; i<pxh1->px_numfields+1; i++)
 				px_free(pxdoc1, l[i]);
 			px_free(pxdoc1, l);
@@ -966,7 +1035,7 @@ int main(int argc, char *argv[]) {
 		}
 		numfields2 = 0;
 		for(i=0; i<pxh2->px_numfields; i++) {
-			if(fieldregex == NULL || selectedfields2[i]) {
+			if(fieldregex == NULL || selectedfields2[i] >= 0) {
 				fields2[numfields2++] = &pxf2[i];
 			}
 		}
@@ -974,7 +1043,7 @@ int main(int argc, char *argv[]) {
 //		sort(fields1, pxh1->px_numfields, fieldcmp);
 //		sort(fields2, pxh2->px_numfields, fieldcmp);
 
-		/* Calculate the length of the commen subsequence */
+		/* Calculate the length of the common subsequence */
 		len = lcs_length(l, (void **) fields1, numfields1,
 		                    (void **) fields2, numfields2,
 		                    fieldcmp, 0);
@@ -989,7 +1058,7 @@ int main(int argc, char *argv[]) {
 				px_free(pxdoc1, l[i]);
 			px_free(pxdoc1, l);
 			px_free(pxdoc1, fields1);
-			px_free(pxdoc1, fields2);
+			px_free(pxdoc2, fields2);
 			PX_close(pxdoc1);
 			PX_close(pxdoc2);
 			exit(1);
@@ -1022,7 +1091,7 @@ int main(int argc, char *argv[]) {
 			px_free(pxdoc1, l[i]);
 		px_free(pxdoc1, l);
 		px_free(pxdoc1, fields1);
-		px_free(pxdoc1, fields2);
+		px_free(pxdoc2, fields2);
 	}
 	/* }}} */
 
@@ -1037,12 +1106,12 @@ int main(int argc, char *argv[]) {
 		int recordsize, len, i, j, k;
 		int realrecsize1, realrecsize2; /* real record size of only selected fields */
 
-		if((l = (int **) pxdoc1->malloc(pxdoc1, (pxh1->px_numrecords+1)*sizeof(char *), _("Could not allocate memory lcs array."))) == NULL) {
+		if((l = (int **) pxdoc1->malloc(pxdoc1, (pxh1->px_numrecords+1)*sizeof(char *), _("Could not allocate memory for lcs array."))) == NULL) {
 			PX_close(pxdoc1);
 			exit(1);
 		}
 		for(i=0; i<pxh1->px_numrecords+1; i++) {
-			if((l[i] = (int *) pxdoc2->malloc(pxdoc2, (pxh2->px_numrecords+1) * sizeof(int), _("Could not allocate memory lcs array."))) == NULL) {
+			if((l[i] = (int *) pxdoc2->malloc(pxdoc2, (pxh2->px_numrecords+1) * sizeof(int), _("Could not allocate memory for lcs array."))) == NULL) {
 				PX_close(pxdoc1);
 				PX_close(pxdoc2);
 				exit(1);
@@ -1077,7 +1146,7 @@ int main(int argc, char *argv[]) {
 					srcoffset = 0;
 					pxf = pxh1->px_fields;
 					for(i=0; i<pxh1->px_numfields; i++) {
-						if(selectedfields1[i]) {
+						if(selectedfields1[i] >= 0) {
 							memcpy(&data1[realrecsize1], &data1[srcoffset], pxf[i].px_flen);
 							realrecsize1 += pxf[i].px_flen;
 						}
@@ -1085,10 +1154,10 @@ int main(int argc, char *argv[]) {
 					} 
 					memset(&data1[realrecsize1], 0, srcoffset-realrecsize1);
 				} else {
-					realrecsize1 = pxh2->px_recordsize;
+					realrecsize1 = pxh1->px_recordsize;
 				}
 			} else {
-				fprintf(stderr, _("Couldn't get record number %d\n"), j);
+				fprintf(stderr, _("Could not get record number %d\n"), j);
 			}
 			data1 += pxh1->px_recordsize;
 		}
@@ -1103,7 +1172,7 @@ int main(int argc, char *argv[]) {
 					srcoffset = 0;
 					pxf = pxh2->px_fields;
 					for(i=0; i<pxh2->px_numfields; i++) {
-						if(selectedfields2[i]) {
+						if(selectedfields2[i] >= 0) {
 							memcpy(&data2[realrecsize2], &data2[srcoffset], pxf[i].px_flen);
 							realrecsize2 += pxf[i].px_flen;
 						}
@@ -1114,7 +1183,7 @@ int main(int argc, char *argv[]) {
 					realrecsize2 = pxh2->px_recordsize;
 				}
 			} else {
-				fprintf(stderr, _("Couldn't get record number %d\n"), j);
+				fprintf(stderr, _("Could not get record number %d\n"), j);
 			}
 			data2 += pxh2->px_recordsize;
 		}
@@ -1127,9 +1196,17 @@ int main(int argc, char *argv[]) {
 		if(realrecsize1 != realrecsize2) {
 			fprintf(outfp, "Record size differs: %d != %d", realrecsize1, realrecsize2);
 			fprintf(outfp, "\n");
+			px_free(pxdoc1, data1);
+			px_free(pxdoc1, records1);
+			px_free(pxdoc2, data2);
+			px_free(pxdoc2, records2);
+			PX_close(pxdoc1);
+			PX_close(pxdoc2);
+			exit(1);
 		}
+
 		/* Calculate the length of the common subsequence */
-		recordsize = min(realrecsize1, realrecsize2);
+		recordsize = realrecsize1;
 		len = lcs_length(l, (void **) records1, pxh1->px_numrecords,
 		                    (void **) records2, pxh2->px_numrecords,
 		                    recordcmp, recordsize);
@@ -1172,11 +1249,16 @@ int main(int argc, char *argv[]) {
 				 */
 				if(pkey && notinlcs1 == 1 && notinlcs2 == 1 &&
 				   !recordcmp(&records1[i][pkeystart1], &records2[j][pkeystart2], pkeylen1)) {
+//					hex_dump(outfp, records1[i], recordsize);
+//					fprintf(outfp, "\n");
+//					hex_dump(outfp, records2[j], recordsize);
+//					fprintf(outfp, "\n");
+
 					fprintf(outfp, "<\t");
 					show_record(outfp, pxdoc1, pxh1, records1[i], selectedfields1);
 					fprintf(outfp, ">\t");
 					show_record(outfp, pxdoc2, pxh2, records2[j], selectedfields2);
-//					show_record_diff(outfp, pxdoc1, pxh1, records1[i], pxdoc2, pxh2, records2[j]);
+					show_record_diff(outfp, pxdoc1, pxh1, records1[i], selectedfields1, pxdoc2, pxh2, records2[j], selectedfields2);
 					i++; j++;
 				} else {
 					if(notinlcs1 == 1) {
