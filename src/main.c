@@ -1912,7 +1912,7 @@ int main(int argc, char *argv[]) {
 			PX_delete(pxdoc2);
 			exit(2);
 		}
-		fprintf(outfp, "primary key: %s: %d %d: %d %d\n", pkey, pkeystart1, pkeylen1, pkeystart2, pkeylen2);
+//		fprintf(outfp, "primary key: %s: %d %d: %d %d\n", pkey, pkeystart1, pkeylen1, pkeystart2, pkeylen2);
 	}
 	/* }}} */
 
@@ -2338,8 +2338,8 @@ int main(int argc, char *argv[]) {
 
 //		lcs_output_matrix(l, pxh1->px_numrecords, pxh2->px_numrecords);
 
-		fprintf(outfp, "Longest common sequence has lenght %d", len);
-		fprintf(outfp, "\n");
+//		fprintf(outfp, "Longest common sequence has lenght %d", len);
+//		fprintf(outfp, "\n");
 
 		/* get the sequence of all common records. lcs contains the pointers
 		 * to common records. The pointer is actually pointing to the record
