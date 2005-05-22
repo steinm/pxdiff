@@ -2,14 +2,14 @@ Source: pxdiff
 Section: misc
 Priority: optional
 Maintainer: Uwe Steinmann <steinm@debian.org>
-Build-Depends: debhelper (>> 4.0.0), pxlib-dev (>= 0.2.4), intltool (>= 0.18), docbook-to-man
+Build-Depends: debhelper (>> 4.0.0), pxlib-dev (>= 0.4.3), intltool (>= 0.18), docbook-to-man
 Standards-Version: 3.6.1
 
 Package: pxdiff
 Architecture: any
-Depends: ${shlibs:Depends}, pxlib1 (>= 0.2.4)
-Description: Calculates difference between two Paradox database
+Depends: ${shlibs:Depends}
+Description: calculates difference between two Paradox databases
  Compares two Paradox databases and outputs the result in a diff
  like format. Both the table structure and the records are being
- compared. record comparison will take only place if the table
+ compared. Record comparison will take only place if the table
  structure does not differ.
