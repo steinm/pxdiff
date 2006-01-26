@@ -261,7 +261,7 @@ void show_field(FILE *outfp, pxfield_t *pxf) {
 			fprintf(outfp, "autoinc(%d)\n", pxf->px_flen);
 			break;
 		case pxfBCD:
-			fprintf(outfp, "decimal(17,%d)\n", pxf->px_flen);
+			fprintf(outfp, "decimal(34,%d)\n", pxf->px_fdc);
 			break;
 		case pxfBytes:
 			fprintf(outfp, "bytes(%d)\n", pxf->px_flen);
